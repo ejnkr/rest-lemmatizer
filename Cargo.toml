@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "noun-extractor",
+  "rest-mecab"
+]
