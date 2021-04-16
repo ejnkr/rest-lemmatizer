@@ -1,29 +1,28 @@
 use anyhow::Result;
-use std::path::Path;
-use borsh::{BorshSerialize,BorshDeserialize};
+use borsh::{BorshDeserialize, BorshSerialize};
 use std::hash::Hash;
-pub trait Store<K, V>: Sized 
-    where
-        K: Eq + Hash + PartialEq + PartialOrd + BorshSerialize + BorshDeserialize,
-        V: BorshSerialize + BorshDeserialize + Copy,
+use std::path::Path;
+pub trait Store<K, V>: Sized
+where
+    K: Eq + Hash + PartialEq + PartialOrd + BorshSerialize + BorshDeserialize,
+    V: BorshSerialize + BorshDeserialize + Copy,
 {
-    fn open<P: AsRef<Path>>(path: P) -> Result<Self>; 
-    fn get(&self, k: &K) -> Result<Option<V>>; 
-    fn put(&mut self, k: K, v: V) -> Result<()>; 
-    fn save(&self) -> Result<()>; 
+    fn open<P: AsRef<Path>>(path: P) -> Result<Self>;
+    fn get(&self, k: &K) -> Result<Option<V>>;
+    fn put(&mut self, k: K, v: V) -> Result<()>;
+    fn save(&self) -> Result<()>;
 }
 
 pub mod hashmap_store {
     use super::Store;
     use anyhow::Result;
     //use serde::{Deserialize, Serialize};
+    use borsh::{BorshDeserialize, BorshSerialize};
     use std::collections::HashMap;
     use std::hash::Hash;
     use std::path::{Path, PathBuf};
-    use borsh::{BorshSerialize,BorshDeserialize};
 
-    pub struct StoreImpl<K, V>
-    {
+    pub struct StoreImpl<K, V> {
         inner: HashMap<K, V>,
         path: PathBuf,
     }
@@ -121,12 +120,10 @@ mod inner {
 mod inner {
     use super::Store;
     use anyhow::Result;
+    use borsh::{BorshDeserialize, BorshSerialize};
     use rocksdb::{BlockBasedOptions, Options, DB};
-    use serde::{Deserialize, Serialize};
-    use borsh::{BorshSerialize,BorshDeserialize};
     use std::hash::Hash;
     use std::path::Path;
-    use tempfile::tempdir;
 
     fn rocksdb_default_opts() -> Options {
         let mut opts = Options::default();
@@ -174,9 +171,7 @@ mod inner {
             })
         }
         fn put(&mut self, k: K, v: V) -> Result<()> {
-            Ok(self
-                .inner
-                .put(k.try_to_vec()?, v.try_to_vec()?)?)
+            Ok(self.inner.put(k.try_to_vec()?, v.try_to_vec()?)?)
         }
         fn save(&self) -> Result<()> {
             Ok(())
@@ -189,10 +184,10 @@ mod inner {
     use super::Store;
     use anyhow::Result;
     //use serde::{Deserialize, Serialize};
+    use borsh::{BorshDeserialize, BorshSerialize};
     use std::collections::HashMap;
     use std::hash::Hash;
     use std::path::{Path, PathBuf};
-    use borsh::{BorshSerialize,BorshDeserialize};
 
     pub struct StoreImpl<K, V>
     where
