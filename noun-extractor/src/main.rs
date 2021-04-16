@@ -1,8 +1,8 @@
 extern crate noun_extractor;
 
 use clap::Clap;
-use std::io::{self, Read};
 use noun_extractor::model::State;
+use std::io::{self, Read};
 
 #[derive(Clap)]
 #[clap(version = "1.0", author = "Eunchul Song. <ec.song@ejn.kr>")]
@@ -58,12 +58,12 @@ struct Extract {
         about = "filter out noun candidates have unique postfixes count below this threshold"
     )]
     unique_postfixes_threshold: u32,
-    #[clap(
+    /*#[clap(
         short,
         long,
         about = "online training with noun candidates have probability larger than 0.9"
     )]
-    online: bool,
+    online: bool,*/
     #[clap(
         short,
         long,
@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
     let mut state = State::open(&opts.store)?;
     if opts.verbose {
         std::env::set_var("RUST_LOG", "debug");
-    } 
+    }
     env_logger::init();
     match opts.subcmd {
         SubCommand::Train(opts) => {
@@ -98,30 +98,45 @@ fn main() -> anyhow::Result<()> {
             let rows = state
                 .extract_nouns2(&input)?
                 .into_iter()
-                .filter(|r| 
-                        r.1.noun_probability >= opts.prob_threshold && 
-                        r.1.count >= opts.count_threshold &&
-                        r.1.unique_postfixes_count >= opts.unique_postfixes_threshold)
-                .collect::<Vec<_>>();
-            if opts.online {
-                let ac = aho_corasick::AhoCorasick::new(rows.iter().filter(|r| r.1.noun_probability >= 0.9 && r.1.unique_postfixes_count >= 4 && r.1.count >= 10).map(|r| &r.0));
-                let matches = ac.find_iter(&input).map(|mat| (mat.start(), mat.end() - mat.start())).collect::<Vec<_>>();
+                .filter(|r| {
+                    r.1.noun_probability >= opts.prob_threshold
+                        && r.1.count >= opts.count_threshold
+                        && r.1.unique_postfixes_count >= opts.unique_postfixes_threshold
+                });
+            /*if opts.online {
+                let ac = aho_corasick::AhoCorasick::new(
+                    rows.iter()
+                        .filter(|r| {
+                            r.1.noun_probability >= 0.9
+                                && r.1.unique_postfixes_count >= 4
+                                && r.1.count >= 10
+                        })
+                        .map(|r| &r.0),
+                );
+                let matches = ac
+                    .find_iter(&input)
+                    .map(|mat| (mat.start(), mat.end() - mat.start()))
+                    .collect::<Vec<_>>();
                 //println!("matches: {:?}", matches);
                 //&input.find(opts.smooth_factor);
                 //state.train_line_bytes(&text, &noun_poses)?;
                 //nl_str
-            }
+            }*/
             let nl_str = rows
                 .into_iter()
-                .map(|r| format!("{}\t{}\t{}\t{}", r.0, r.1.noun_probability, r.1.count, r.1.unique_postfixes_count))
+                .map(|r| {
+                    format!(
+                        "{}\t{}\t{}\t{}",
+                        r.0, r.1.noun_probability, r.1.count, r.1.unique_postfixes_count
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join("\n");
-            
+
             match opts.output {
                 Some(output) => std::fs::write(output, nl_str)?,
                 None => println!("{}", &nl_str),
             }
-
         }
         SubCommand::Extract(opts) => {
             state.set_smooth_factor(opts.smooth_factor);
@@ -136,14 +151,19 @@ fn main() -> anyhow::Result<()> {
             let rows = state
                 .extract_nouns(&input)?
                 .into_iter()
-                .filter(|r| 
-                        r.1.noun_probability >= opts.prob_threshold && 
-                        r.1.count >= opts.count_threshold &&
-                        r.1.unique_postfixes_count >= opts.unique_postfixes_threshold)
-                .collect::<Vec<_>>();
+                .filter(|r| {
+                    r.1.noun_probability >= opts.prob_threshold
+                        && r.1.count >= opts.count_threshold
+                        && r.1.unique_postfixes_count >= opts.unique_postfixes_threshold
+                });
             let nl_str = rows
                 .into_iter()
-                .map(|r| format!("{}\t{}\t{}\t{}", r.0, r.1.noun_probability, r.1.count, r.1.unique_postfixes_count))
+                .map(|r| {
+                    format!(
+                        "{}\t{}\t{}\t{}",
+                        r.0, r.1.noun_probability, r.1.count, r.1.unique_postfixes_count
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join("\n");
             match opts.output {

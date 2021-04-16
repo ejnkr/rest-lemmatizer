@@ -35,7 +35,6 @@ fn main() {
     println!("False Negative Error: {}", false_negative_error);
     println!("Total: {}", false_negative_error + false_positive_error);
 
-
     let start = Instant::now();
     let result = state.extract_nouns2(&test_data).unwrap();
     let extract_duration = start.elapsed();
@@ -53,7 +52,6 @@ fn main() {
     println!("False Positive Error: {}", false_positive_error);
     println!("False Negative Error: {}", false_negative_error);
     println!("Total: {}", false_negative_error + false_positive_error);
-
 }
 
 fn eval_dataset(path: &str) -> (String, HashSet<String>) {
@@ -76,7 +74,7 @@ fn eval_dataset(path: &str) -> (String, HashSet<String>) {
                 break;
             }
             let mut k = i;
-            while k >= 1 && (data.1[k-1].0 + data.1[k-1].1 == data.1[k].0) {
+            while k >= 1 && (data.1[k - 1].0 + data.1[k - 1].1 == data.1[k].0) {
                 k -= 1;
             }
             nouns.insert(chars[data.1[k].0..l + len].iter().collect::<String>());

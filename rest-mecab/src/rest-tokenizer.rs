@@ -3,20 +3,19 @@ use serde::Deserialize;
 
 mod tokenizer;
 
-use tokenizer::Tokenizer;
 use async_rwlock::RwLock;
+use tokenizer::Tokenizer;
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 struct Error {
     err: anyhow::Error,
 }
-impl actix_web::error::ResponseError for Error { }
+impl actix_web::error::ResponseError for Error {}
 impl From<anyhow::Error> for Error {
     fn from(err: anyhow::Error) -> Error {
         Error { err }
     }
 }
-
 
 #[derive(Debug, Deserialize)]
 struct SearchQuery {
@@ -24,7 +23,10 @@ struct SearchQuery {
 }
 
 #[get("/search")]
-async fn search(q: web::Query<SearchQuery>, tokenizer: web::Data<RwLock<Tokenizer>>) -> impl Responder {
+async fn search(
+    q: web::Query<SearchQuery>,
+    tokenizer: web::Data<RwLock<Tokenizer>>,
+) -> impl Responder {
     let q = q.into_inner().q;
     let result = tokenizer.read().await.tokenize(&q);
     result
@@ -40,7 +42,12 @@ async fn nouns(body: web::Bytes, tokenizer: web::Data<RwLock<Tokenizer>>) -> Res
     println!("1");
     let nouns: Vec<String> = bincode::deserialize(&body).map_err(anyhow::Error::from)?;
     println!("2");
-    tokenizer.read().await.gen_userdic(nouns).await.map_err(anyhow::Error::from)?;
+    tokenizer
+        .read()
+        .await
+        .gen_userdic(nouns)
+        .await
+        .map_err(anyhow::Error::from)?;
     println!("3");
     tokenizer.write().await.reload();
     println!("4");
@@ -51,17 +58,15 @@ async fn nouns(body: web::Bytes, tokenizer: web::Data<RwLock<Tokenizer>>) -> Res
 async fn main() -> std::io::Result<()> {
     let port = std::env::var("PORT").unwrap_or("8080".to_string());
     HttpServer::new(|| {
-        let mecab_dic_path = std::env::var("MECAB_DIC_PATH").unwrap_or("/usr/local/lib/mecab".to_string());
+        let mecab_dic_path =
+            std::env::var("MECAB_DIC_PATH").unwrap_or("/usr/local/lib/mecab".to_string());
         let tokenizer = Tokenizer::new(mecab_dic_path);
-        let data =  web::Data::new(RwLock::new(tokenizer));
-        App::new()
-            .app_data(data)
-            .service(search)
-            .service(nouns)
+        let data = web::Data::new(RwLock::new(tokenizer));
+        App::new().app_data(data).service(search).service(nouns)
     })
-        .bind(&format!("0.0.0.0:{}", port))?
-        .run()
-        .await
+    .bind(&format!("0.0.0.0:{}", port))?
+    .run()
+    .await
 }
 
 #[cfg(test)]
@@ -73,11 +78,8 @@ mod tests {
         actix_test::start_with(actix_test::config().h1(), || {
             let mecab_dic_path = "./mecab-ko-dic".to_string();
             let mut tokenizer = Tokenizer::new(mecab_dic_path);
-            let data =  web::Data::new(RwLock::new(tokenizer));
-            App::new()
-                .app_data(data)
-                .service(search)
-                .service(nouns)
+            let data = web::Data::new(RwLock::new(tokenizer));
+            App::new().app_data(data).service(search).service(nouns)
         })
     }
     #[actix_rt::test]
@@ -89,14 +91,20 @@ mod tests {
         let mut res = req.send().await.unwrap();
 
         assert!(res.status().is_success());
-        assert_eq!(String::from_utf8(res.body().await.unwrap().to_vec()).unwrap(), "안녕\tIC,*,T,안녕,*,*,*,*\nEOS\n".to_string());
+        assert_eq!(
+            String::from_utf8(res.body().await.unwrap().to_vec()).unwrap(),
+            "안녕\tIC,*,T,안녕,*,*,*,*\nEOS\n".to_string()
+        );
     }
     #[actix_rt::test]
     #[serial]
     async fn test_regist_nouns() {
         let mecab_dic_path = "./mecab-ko-dic".to_string();
         let mut tokenizer = Tokenizer::new(mecab_dic_path);
-        tokenizer.gen_userdic(vec!["뤣쉙퀡".to_string()]).await.unwrap();
+        tokenizer
+            .gen_userdic(vec!["뤣쉙퀡".to_string()])
+            .await
+            .unwrap();
         tokenizer.reload();
         let res = tokenizer.tokenize("뤣쉙퀡");
         assert_eq!(res, "뤣쉙퀡\tNNP,*,T,뤣쉙퀡,*,*,*,*\nEOS\n");
@@ -105,20 +113,36 @@ mod tests {
     #[serial]
     async fn test_concurrent_jobs() {
         let srv = test_server();
-        let search_reqs = (0..10u32).map(|_| srv.get("/search?q=%ED%86%A9%ED%86%A9%ED%86%A9%0A").timeout(std::time::Duration::from_secs(5)).send());
+        let search_reqs = (0..10u32).map(|_| {
+            srv.get("/search?q=%ED%86%A9%ED%86%A9%ED%86%A9%0A")
+                .timeout(std::time::Duration::from_secs(5))
+                .send()
+        });
         //let sync_reqs = srv.get("/search?q=%ED%86%A9%ED%86%A9%ED%86%A9%0A").timeout(std::time::Duration::from_secs(5)).send();
-        let sync_reqs = (0..2u32).map(|_| srv.post("/nouns").timeout(std::time::Duration::from_secs(60)).send_body(bincode::serialize(&vec!["톩톩톩"]).unwrap()));
-        let (a, b) = futures::join!(futures::future::join_all(search_reqs), futures::future::join_all(sync_reqs));
+        let sync_reqs = (0..2u32).map(|_| {
+            srv.post("/nouns")
+                .timeout(std::time::Duration::from_secs(60))
+                .send_body(bincode::serialize(&vec!["톩톩톩"]).unwrap())
+        });
+        let (a, b) = futures::join!(
+            futures::future::join_all(search_reqs),
+            futures::future::join_all(sync_reqs)
+        );
         for i in a {
             assert!(i.unwrap().status().is_success());
         }
         for i in b {
             assert!(i.unwrap().status().is_success());
         }
-        let mut res = srv.get("/search?q=%ED%86%A9%ED%86%A9%ED%86%A9%0A").send().await.unwrap();
+        let mut res = srv
+            .get("/search?q=%ED%86%A9%ED%86%A9%ED%86%A9%0A")
+            .send()
+            .await
+            .unwrap();
         assert!(res.status().is_success());
         assert_eq!(
-            String::from_utf8(res.body().await.unwrap().to_vec()).unwrap(), 
-            "톩톩톩\tNNP,*,T,톩톩톩,*,*,*,*\nEOS\n".to_string());
+            String::from_utf8(res.body().await.unwrap().to_vec()).unwrap(),
+            "톩톩톩\tNNP,*,T,톩톩톩,*,*,*,*\nEOS\n".to_string()
+        );
     }
 }
