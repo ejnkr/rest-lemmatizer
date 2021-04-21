@@ -16,7 +16,7 @@ name = "evaluate"
 harness = false
 
 [features]
-default = ["rocksdb"]
+default = ["hashmap"]
 hashmap = []
 
 [dependencies]
@@ -25,14 +25,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = "3.0.0-beta.2"
 rocksdb = { version = "0.15", optional = true }
-speedy = "0.7"
-bincode = "1"
 tempfile = "3"
 lazy_static = "1"
-hashbrown = { version = "0.11" }
+#hashbrown = { version = "0.11" }
 #faster-rs = { version = "0.11", optional = true }
-borsh = "0.9"
+bincode = "1"
 log = "0.4"
 env_logger = "0.8"
-aho-corasick = "0.7"
+#aho-corasick = "0.7"
 #abomonation = "0.7"
+hyperloglog = { path = "../rust-hyperloglog" }

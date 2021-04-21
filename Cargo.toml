@@ -1,5 +1,7 @@
 [workspace]
 members = [
   "noun-extractor",
-  "rest-mecab"
+  "rest-mecab",
+  "rust-hyperloglog",
+  "hangul-normalize"
 ]

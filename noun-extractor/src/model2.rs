@@ -10,10 +10,10 @@ use std::path::Path;
 use borsh::{BorshSerialize as Serialize,BorshDeserialize as Deserialize};
 
 #[derive(Deserialize, Serialize, Hash, PartialOrd, Eq, Debug, PartialEq, Default)]
-pub struct Postfix {
+pub struct Suffix {
     //target_has_support: bool,
     last_char: u32,
-    postfix: String,
+    suffix: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Default, Clone, Copy)]
@@ -26,12 +26,12 @@ pub struct Count {
 pub struct Score {
     pub noun_probability: f32,
     pub count: u32,
-    pub unique_postfixes_count: u32,
+    pub unique_suffixes_count: u32,
 }
 impl Score {
-    pub fn new(noun_probability: f32, count: u32, unique_postfixes_count: u32) -> Self {
+    pub fn new(noun_probability: f32, count: u32, unique_suffixes_count: u32) -> Self {
         Self {
-            noun_probability, count, unique_postfixes_count
+            noun_probability, count, unique_suffixes_count
         }
     }
 }
@@ -59,7 +59,7 @@ const DEFAULT_SMOOTH_FACTOR: f64 = 0.5;
 const MAX_POSTFIX_SIZE: usize = 3;
 
 pub struct State {
-    postfix_count_store: Store<Postfix, Count>,
+    suffix_count_store: Store<Suffix, Count>,
     noun_count_store: Store<String, u32>,
     smooth_factor: f64,
 }
@@ -67,7 +67,7 @@ pub struct State {
 impl State {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         Ok(State {
-            postfix_count_store: Store::open(path.as_ref().join("postfix"))?,
+            suffix_count_store: Store::open(path.as_ref().join("suffix"))?,
             noun_count_store: Store::open(path.as_ref().join("noun"))?,
             smooth_factor: DEFAULT_SMOOTH_FACTOR,
         })
@@ -77,7 +77,7 @@ impl State {
         self
     }
     pub fn save(&self) -> Result<()> {
-        self.postfix_count_store.save()?;
+        self.suffix_count_store.save()?;
         self.noun_count_store.save()?;
         Ok(())
     }
@@ -134,7 +134,7 @@ impl State {
         }
         Ok(())
     }
-    pub fn observe_postnoun(&mut self, last_target_char: char, postfix: String) -> Result<()> {
+    pub fn observe_postnoun(&mut self, last_target_char: char, suffix: String) -> Result<()> {
         let mut noun_count: u32 = self
             .noun_count_store
             .get(&NOUN_COUNT_KEY)?
@@ -143,24 +143,24 @@ impl State {
         self.noun_count_store
             .put(NOUN_COUNT_KEY.clone(), noun_count)?;
 
-        let key = Postfix {
+        let key = Suffix {
             last_char: last_target_char as u32,
-            postfix: postfix.clone(),
+            suffix: suffix.clone(),
         };
-        let mut count: Count = self.postfix_count_store.get(&key)?.unwrap_or_default();
+        let mut count: Count = self.suffix_count_store.get(&key)?.unwrap_or_default();
         count.postnoun += 1;
-        self.postfix_count_store.put(key, count)?;
+        self.suffix_count_store.put(key, count)?;
 
-        let key = Postfix {
+        let key = Suffix {
             last_char: '\0' as u32,
-            postfix,
+            suffix,
         };
-        let mut count: Count = self.postfix_count_store.get(&key)?.unwrap_or_default();
+        let mut count: Count = self.suffix_count_store.get(&key)?.unwrap_or_default();
         count.postnoun += 1;
-        self.postfix_count_store.put(key, count)?;
+        self.suffix_count_store.put(key, count)?;
         Ok(())
     }
-    pub fn observe_postother(&mut self, last_target_char: char, postfix: String) -> Result<()> {
+    pub fn observe_postother(&mut self, last_target_char: char, suffix: String) -> Result<()> {
         let mut noun_count: u32 = self
             .noun_count_store
             .get(&OTHER_COUNT_KEY)?
@@ -169,40 +169,40 @@ impl State {
         self.noun_count_store
             .put(OTHER_COUNT_KEY.clone(), noun_count)?;
 
-        let key = Postfix {
+        let key = Suffix {
             last_char: last_target_char as u32,
-            postfix: postfix.clone(),
+            suffix: suffix.clone(),
         };
-        let mut count: Count = self.postfix_count_store.get(&key)?.unwrap_or_default();
+        let mut count: Count = self.suffix_count_store.get(&key)?.unwrap_or_default();
         count.postother += 1;
-        self.postfix_count_store.put(key, count)?;
+        self.suffix_count_store.put(key, count)?;
 
-        let key = Postfix {
+        let key = Suffix {
             last_char: '\0' as u32,
-            postfix,
+            suffix,
         };
-        let mut count: Count = self.postfix_count_store.get(&key)?.unwrap_or_default();
+        let mut count: Count = self.suffix_count_store.get(&key)?.unwrap_or_default();
         count.postother += 1;
-        self.postfix_count_store.put(key, count)?;
+        self.suffix_count_store.put(key, count)?;
         Ok(())
     }
-    fn postfix_likelihood(
+    fn suffix_likelihood(
         &self,
         last_target_char: char,
-        postfix: String,
+        suffix: String,
         noun_count: f64,
         other_count: f64,
     ) -> Result<(f64, f64)> {
-        let key = Postfix {
+        let key = Suffix {
             last_char: last_target_char as u32,
-            postfix: postfix.clone(),
+            suffix: suffix.clone(),
         };
-        let count: Option<Count> = self.postfix_count_store.get(&key)?;
-        let key = Postfix {
+        let count: Option<Count> = self.suffix_count_store.get(&key)?;
+        let key = Suffix {
             last_char: '\0' as u32,
-            postfix: postfix.clone(),
+            suffix: suffix.clone(),
         };
-        let count_without_lastchar: Option<Count> = self.postfix_count_store.get(&key)?;
+        let count_without_lastchar: Option<Count> = self.suffix_count_store.get(&key)?;
         let alpha = noun_count / (other_count + noun_count);
         let beta = other_count / (other_count + noun_count);
         let with_lastchar = match count {
@@ -230,7 +230,7 @@ impl State {
         let noun_count: f32 = self.noun_count_store.get(&NOUN_COUNT_KEY)?.unwrap_or(0u32) as f32;
         let other_count: f32 = self.noun_count_store.get(&OTHER_COUNT_KEY)?.unwrap_or(0u32) as f32;
         let mut likelihoods = HashMap::new();
-        let mut unique_postfixes = HashSet::new();
+        let mut unique_suffixes = HashSet::new();
         let total_size = text.len();
         let mut read_size = 0usize;
         for (i, line) in text.lines().enumerate() {
@@ -251,15 +251,15 @@ impl State {
                 let candidate = chars[word_start_index..i + 1].iter().collect::<String>();
                 let candidate_last_char = chars[i];
                 for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i - 1) {
-                    let postfix = chars[i + 1..i + 1 + j].iter().collect::<String>();
-                    let (nl, ol) = self.postfix_likelihood(
+                    let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
+                    let (nl, ol) = self.suffix_likelihood(
                         candidate_last_char,
-                        postfix,
+                        suffix,
                         noun_count as f64,
                         other_count as f64,
                     )?;
                     if j == 1 && (nl != 1.0 && ol != 1.0) {
-                        unique_postfixes.insert(chars[word_start_index..(i + 2).min(chars.len())].iter().collect::<String>());
+                        unique_suffixes.insert(chars[word_start_index..(i + 2).min(chars.len())].iter().collect::<String>());
                     }
                     let Score { noun_probability, .. } =
                         likelihoods.entry(candidate.clone()).or_insert(Score::default());
@@ -278,10 +278,10 @@ impl State {
                 );
             }
         }
-        unique_postfixes.into_iter().for_each(|up| {
+        unique_suffixes.into_iter().for_each(|up| {
             let chars = up.chars().into_iter().collect::<Vec<_>>();
-            let Score { unique_postfixes_count, .. } = likelihoods.entry(chars[..chars.len()-1].into_iter().collect::<String>()).or_insert(Score::default());
-            *unique_postfixes_count += 1;
+            let Score { unique_suffixes_count, .. } = likelihoods.entry(chars[..chars.len()-1].into_iter().collect::<String>()).or_insert(Score::default());
+            *unique_suffixes_count += 1;
         });
         let mut res = likelihoods
             .into_iter()
@@ -292,7 +292,7 @@ impl State {
                         (score.noun_probability * noun_count).min(f32::MAX)
                         / (score.noun_probability * noun_count + other_count).min(f32::MAX),
                         score.count,
-                        score.unique_postfixes_count,
+                        score.unique_suffixes_count,
                     )
                 )
             })
@@ -305,8 +305,8 @@ impl State {
             } else if s2.noun_probability.is_nan() {
                 std::cmp::Ordering::Less
             } else {
-                ((s2.count as f32).log10() * s2.noun_probability * s2.unique_postfixes_count as f32)
-                    .partial_cmp(&((s1.count as f32).log10() * s1.noun_probability * s1.unique_postfixes_count as f32))
+                ((s2.count as f32).log10() * s2.noun_probability * s2.unique_suffixes_count as f32)
+                    .partial_cmp(&((s1.count as f32).log10() * s1.noun_probability * s1.unique_suffixes_count as f32))
                     .unwrap()
             }
         });
@@ -341,13 +341,13 @@ mod tests {
         state.observe_postnoun('가', "테스트2".to_string()).unwrap();
         assert_eq!(
             state
-                .postfix_likelihood('가', "테스트1".to_string(), 2., 1.)
+                .suffix_likelihood('가', "테스트1".to_string(), 2., 1.)
                 .unwrap(),
             (0.5, 1.0)
         );
         assert_eq!(
             state
-                .postfix_likelihood('가', "테스트2".to_string(), 2., 1.)
+                .suffix_likelihood('가', "테스트2".to_string(), 2., 1.)
                 .unwrap(),
             (0.5, 0.0)
         );

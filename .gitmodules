@@ -1,0 +1,4 @@
+[submodule "SubmoduleTestRepo"]
+    path = rust-hyperloglog
+    url = https://github.com/song9446/rust-hyperloglog.git
+    branch = serde

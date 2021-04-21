@@ -15,9 +15,9 @@ path = "src/rest-userdic.rs"
 [dependencies]
 actix-web = "4.0.0-beta.5"
 actix-rt = "2"
-actix-test = "0.1.0-beta.1"
 serde = { version = "1", features = [ "derive" ] }
-awc = "3.0.0-beta.4"
+serde_json = "1"
+awc = "3.0.0-beta.5"
 anyhow = "1"
 csv = "1"
 async-rwlock = "1"
@@ -29,7 +29,12 @@ blocking = "1"
 bincode = "1"
 futures = "0.3"
 
-noun-extractor = { path = "../noun-extractor", features = [ "rocksdb" ] }
+noun-extractor = { path = "../noun-extractor" }
+
+rocksdb = { version = "0.15" }
+
+hangul-normalize = { path = "../hangul-normalize" }
 
 [dev-dependencies]
 serial_test = "*"
+actix-test = "0.1.0-beta.1"

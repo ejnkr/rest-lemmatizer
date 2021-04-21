@@ -1,18 +1,20 @@
 use anyhow::{Error, Result};
 use mecab::Tagger;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use serde::{Serialize, Deserialize};
+use hangul_normalize::{control_chars, derepeat, whitespace_less};
 
 pub fn has_support(c: char) -> bool {
     0xAC00 <= c as u32 && c as u32 <= 0xD7A3 && ((c as u32 - 0xAC00) % 28 != 0)
 }
 fn mecab_csv_nnp_format(nnp: &str) -> Result<String> {
-    if nnp.len() == 0 {
+    if nnp.is_empty() {
         return Err(Error::msg("NNP length 0"));
     }
     Ok(format!(
         "{},,,,NNP,*,{},{},*,*,*,*",
         nnp,
-        if has_support(nnp.chars().rev().nth(0).unwrap()) {
+        if has_support(nnp.chars().rev().next().unwrap()) {
             "T"
         } else {
             "F"
@@ -23,19 +25,87 @@ fn mecab_csv_nnp_format(nnp: &str) -> Result<String> {
 
 pub struct Tokenizer {
     tagger: Tagger,
-    mecab_dic_path: String,
+    mecab_dic_path: PathBuf,
+}
+
+unsafe impl Send for Tokenizer {}
+unsafe impl Sync for Tokenizer {}
+
+fn asterisk_as_none(s: String) -> Option<String> {
+    if s == "*" {
+        None
+    } else {
+        Some(s)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Morpheme {
+    token: String,
+    tag: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Analytics {
+    pub token: String,
+    pub tags: Vec<String>,
+    pub symantic_group: Option<String>,
+    pub has_support: Option<bool>,
+    pub pronounce: Option<String>,
+    pub kind: Option<String>,
+    pub left_tag: Option<String>,
+    pub right_tag: Option<String>,
+    pub morphemes: Option<Vec<Morpheme>>,
+}
+impl Analytics {
+    pub fn parse(s: &str) -> Result<Self> {
+        let mut sp = s.split('\t');
+        let token = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string();
+        let mut sp = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.split(',');
+        let tags = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.split('+').map(|s| s.to_string()).collect();
+        let symantic_group = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let has_support = match sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))? {
+            "T" => Some(true),
+            "F" => Some(false),
+            _ => None
+        };
+        let pronounce = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let kind = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let left_tag = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let right_tag = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let morphemes = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?;
+        let morphemes = if morphemes == "*" {
+            None
+        } else {
+            Some(morphemes.split('+').map(|s| {
+                let mut splited = s.split('/');
+                match (splited.next(), splited.next()) {
+                    (Some(token), Some(tag)) => Ok(Morpheme {
+                        token: token.to_string(), tag: tag.to_string()
+                    }),
+                    _ => Err(anyhow::Error::msg(s.to_string())),
+                }
+            }).collect::<Result<Vec<Morpheme>>>()?)
+        };
+        Ok(Analytics {
+            token, tags, symantic_group, has_support, pronounce, kind, left_tag, right_tag, morphemes
+        })
+    }
 }
 
 impl Tokenizer {
-    pub fn new(mecab_dic_path: String) -> Self {
+    pub fn new<P: AsRef<Path>>(mecab_dic_path: P) -> Self {
         let tagger = Tagger::new("");
         Self {
             tagger,
-            mecab_dic_path,
+            mecab_dic_path: mecab_dic_path.as_ref().to_path_buf(),
         }
     }
-    pub fn tokenize(&self, q: &str) -> String {
-        self.tagger.parse_str(q)
+    pub fn tokenize(&self, q: &str) -> Result<Vec<Analytics>> {
+        let s = control_chars(&q, "_");
+        let s = whitespace_less(&s);
+        let s = derepeat(&s, 3);
+        self.tagger.parse_str(q).lines().filter_map(|l| if l != "EOS" { Some(Analytics::parse(l)) } else { None }).collect()
     }
     pub async fn gen_userdic(&self, nouns: Vec<String>) -> Result<()> {
         let path = self.mecab_dic_path.clone();
@@ -49,7 +119,7 @@ impl Tokenizer {
                     .collect::<Vec<_>>()
                     .join("\n"),
             )?;
-            let output = std::process::Command::new("sh")
+            let output = std::process::Command::new("bash")
                 .current_dir(Path::new(&path))
                 .args(&["-c", r#"./tools/add-userdic.sh && make && make install"#])
                 .output()?;
@@ -68,5 +138,16 @@ impl Tokenizer {
     }
     pub fn reload(&mut self) {
         self.tagger = Tagger::new("");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn tokenize() {
+        let tok = Tokenizer::new("");
+        let res = tok.tokenize("안녕 반가워").unwrap();
+        assert_eq!(format!("{:?}", res), "hi");
     }
 }

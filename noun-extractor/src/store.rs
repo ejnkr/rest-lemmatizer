@@ -1,11 +1,11 @@
 use anyhow::Result;
-use borsh::{BorshDeserialize, BorshSerialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::hash::Hash;
 use std::path::Path;
 pub trait Store<K, V>: Sized
 where
-    K: Eq + Hash + PartialEq + PartialOrd + BorshSerialize + BorshDeserialize,
-    V: BorshSerialize + BorshDeserialize + Copy,
+    K: Eq + Hash + PartialEq + PartialOrd + Serialize + DeserializeOwned,
+    V: Serialize + DeserializeOwned + Copy,
 {
     fn open<P: AsRef<Path>>(path: P) -> Result<Self>;
     fn get(&self, k: &K) -> Result<Option<V>>;
@@ -17,7 +17,7 @@ pub mod hashmap_store {
     use super::Store;
     use anyhow::Result;
     //use serde::{Deserialize, Serialize};
-    use borsh::{BorshDeserialize, BorshSerialize};
+    use serde::{Serialize, de::DeserializeOwned};
     use std::collections::HashMap;
     use std::hash::Hash;
     use std::path::{Path, PathBuf};
@@ -29,12 +29,12 @@ pub mod hashmap_store {
 
     impl<K, V> Store<K, V> for StoreImpl<K, V>
     where
-        K: Eq + Hash + PartialEq + PartialOrd + BorshSerialize + BorshDeserialize,
-        V: BorshSerialize + BorshDeserialize + Copy,
+        K: Eq + Hash + PartialEq + PartialOrd + Serialize + DeserializeOwned,
+        V: Serialize + DeserializeOwned + Copy,
     {
         fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
             let inner = match std::fs::read(&(*path.as_ref())) {
-                Ok(bytes) => HashMap::<K, V>::try_from_slice(&bytes)?,
+                Ok(bytes) => bincode::deserialize(&bytes)?,
                 Err(_) => HashMap::<K, V>::new(),
             };
             Ok(Self {
@@ -54,12 +54,13 @@ pub mod hashmap_store {
                 std::fs::create_dir_all(p)?;
             }
             //std::fs::write(self.path.clone(), &bincode::serialize(&self.inner)?)?;
-            std::fs::write(self.path.clone(), self.inner.try_to_vec()?)?;
+            std::fs::write(self.path.clone(), bincode::serialize(&self.inner)?)?;
             Ok(())
         }
     }
 }
 
+/*
 #[cfg(feature = "faster-rs")]
 mod inner {
     use super::*;
@@ -231,3 +232,4 @@ mod inner {
 }
 
 pub use inner::StoreImpl;
+*/

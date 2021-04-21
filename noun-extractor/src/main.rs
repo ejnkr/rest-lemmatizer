@@ -9,7 +9,7 @@ use std::io::{self, Read};
 struct Opts {
     #[clap(subcommand)]
     subcmd: SubCommand,
-    #[clap(about = "store path", default_value = "./store")]
+    #[clap(about = "store path", default_value = "./noun-extractor-model")]
     store: String,
     #[clap(short, long)]
     verbose: bool,
@@ -54,10 +54,10 @@ struct Extract {
     #[clap(
         short,
         long,
-        default_value = "4",
-        about = "filter out noun candidates have unique postfixes count below this threshold"
+        default_value = "5",
+        about = "filter out noun candidates have unique suffixes count below this threshold"
     )]
-    unique_postfixes_threshold: u32,
+    unique_suffixes_threshold: u32,
     /*#[clap(
         short,
         long,
@@ -101,14 +101,14 @@ fn main() -> anyhow::Result<()> {
                 .filter(|r| {
                     r.1.noun_probability >= opts.prob_threshold
                         && r.1.count >= opts.count_threshold
-                        && r.1.unique_postfixes_count >= opts.unique_postfixes_threshold
+                        && r.1.unique_suffixes_hll.len() >= opts.unique_suffixes_threshold.into()
                 });
             /*if opts.online {
                 let ac = aho_corasick::AhoCorasick::new(
                     rows.iter()
                         .filter(|r| {
                             r.1.noun_probability >= 0.9
-                                && r.1.unique_postfixes_count >= 4
+                                && r.1.unique_suffixes_count >= 4
                                 && r.1.count >= 10
                         })
                         .map(|r| &r.0),
@@ -127,7 +127,7 @@ fn main() -> anyhow::Result<()> {
                 .map(|r| {
                     format!(
                         "{}\t{}\t{}\t{}",
-                        r.0, r.1.noun_probability, r.1.count, r.1.unique_postfixes_count
+                        r.0, r.1.noun_probability, r.1.count, r.1.unique_suffixes_hll.len()
                     )
                 })
                 .collect::<Vec<_>>()
@@ -154,14 +154,14 @@ fn main() -> anyhow::Result<()> {
                 .filter(|r| {
                     r.1.noun_probability >= opts.prob_threshold
                         && r.1.count >= opts.count_threshold
-                        && r.1.unique_postfixes_count >= opts.unique_postfixes_threshold
+                        && r.1.unique_suffixes_hll.len() >= opts.unique_suffixes_threshold.into()
                 });
             let nl_str = rows
                 .into_iter()
                 .map(|r| {
                     format!(
                         "{}\t{}\t{}\t{}",
-                        r.0, r.1.noun_probability, r.1.count, r.1.unique_postfixes_count
+                        r.0, r.1.noun_probability, r.1.count, r.1.unique_suffixes_hll.len()
                     )
                 })
                 .collect::<Vec<_>>()
