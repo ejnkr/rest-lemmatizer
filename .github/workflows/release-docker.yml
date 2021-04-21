@@ -13,8 +13,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
-      - id: Set Image Tag as Cargo Package Version
+      - id: set_var
+        name: Set Image Tag as Cargo Package Version
         run: |
           content="$(cat ./rest-mecab/Cargo.toml | grep "^version = " | awk -F'[ ="]+' '$1 == "version" { print $2 }')"
           # end of optional handling for multi line json
