@@ -1,7 +1,0 @@
-[workspace]
-members = [
-  "noun-extractor",
-  "rest-mecab",
-  "rust-hyperloglog",
-  "hangul-normalize"
-]
