@@ -8,8 +8,13 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
-    steps:
-      - id: set_var
+    steps:      
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - id: Set Image Tag as Cargo Package Version
         run: |
           content="$(cat ./rest-mecab/Cargo.toml | grep "^version = " | awk -F'[ ="]+' '$1 == "version" { print $2 }')"
           # end of optional handling for multi line json
