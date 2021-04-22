@@ -1,6 +1,5 @@
 use crate::store::{hashmap_store::StoreImpl as HashMapStoreImpl, Store};
 use anyhow::Result;
-use lazy_static::lazy_static;
 use log::debug;
 //use serde::{Deserialize, Serialize};
 //use hashbrown::HashMap;
@@ -413,7 +412,7 @@ impl State {
             let suffix = word[word.len() - suffix_len..].iter().collect::<String>();
             let prob = self.suffix_noun_prob2(word[word.len() - suffix_len - 1], suffix.clone())?;
             debug!("{} ~ {:?}: {:?}({:?})", &candidate, &suffix, prob, count);
-            let s = candidates.entry(candidate).or_insert(Score::default());
+            let s = candidates.entry(candidate).or_insert_with(Score::default);
             s.noun_probability += count as f32 * prob as f32;
             if suffix_len == 1 && prob != 0.0 {
                 s.observe_suffix(&suffix);
@@ -501,7 +500,7 @@ impl State {
                     " ".to_string() + suffix.as_str(),
                 )?;
             debug!("{} ~ {:?}: {:?}({:?})", &candidate, &suffix, prob, count);
-            let s = candidates.entry(candidate).or_insert(Score::default());
+            let s = candidates.entry(candidate).or_insert_with(Score::default);
             s.noun_probability += count as f32 * prob as f32;
             if suffix_len == 1 && prob != 0.0 {
                 s.observe_suffix(&suffix);

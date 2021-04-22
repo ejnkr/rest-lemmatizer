@@ -151,7 +151,7 @@ impl Tokenizer {
         let s = whitespace_less(&s);
         let s = derepeat(&s, 3);
         self.tagger
-            .parse_str(q)
+            .parse_str(s)
             .lines()
             .filter_map(|l| {
                 if l != "EOS" {

@@ -45,7 +45,7 @@ pub fn hangul_to_jamo(text: String) -> String {
     ];
     text.chars()
         .flat_map(|c| {
-            if '가' <= c && c <= '힣' {
+            if ('가'..='힣').contains(&c) {
                 let c = c as usize;
                 let cho_index = (c - 44032) / 588;
                 let jung_index = (c - 44032 - cho_index * 588) / 28;
@@ -67,18 +67,14 @@ pub fn derepeat(text: &str, n: usize) -> String {
     let mut last_char: char = '𝕊';
     let mut repeat: usize = 0;
     text.chars()
-        .filter_map(|c| {
-            if last_char == c {
+        .filter(|c| {
+            if last_char == *c {
                 repeat += 1;
             } else {
                 repeat = 0;
-                last_char = c;
+                last_char = *c;
             }
-            if repeat >= n {
-                None
-            } else {
-                Some(c)
-            }
+            repeat < n 
         })
         .collect()
 }
@@ -109,22 +105,18 @@ pub fn whitespace_less(text: &str) -> String {
     let mut last_char: char = '𝕊';
     text.trim()
         .chars()
-        .filter_map(|c| {
-            if char::is_whitespace(last_char) && char::is_whitespace(c) {
-                if c == '\t' {
-                    Some(c)
-                } else {
-                    None
-                }
+        .filter(|c| {
+            if char::is_whitespace(last_char) && char::is_whitespace(*c) {
+                *c == '\t'
             } else {
-                last_char = c;
-                Some(c)
+                last_char = *c;
+                true
             }
         })
         .collect()
 }
 
-pub fn normalize<'a>(text: String, opts: &'a Opts) -> String {
+pub fn normalize(text: String, opts: &'_ Opts) -> String {
     let text = match &opts.control_chars {
         Some(c) => control_chars(&text, &c),
         None => text,
@@ -137,11 +129,10 @@ pub fn normalize<'a>(text: String, opts: &'a Opts) -> String {
         true => whitespace_less(&text),
         false => text,
     };
-    let text = match &opts.hangul_to_jamo {
+    match &opts.hangul_to_jamo {
         true => hangul_to_jamo(text),
         false => text,
-    };
-    text
+    }
 }
 
 #[cfg(test)]

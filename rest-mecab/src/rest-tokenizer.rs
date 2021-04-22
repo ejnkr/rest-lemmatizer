@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
 
-mod tokenizer;
+pub mod tokenizer;
 
 use async_rwlock::RwLock;
 use tokenizer::Tokenizer;
@@ -93,33 +93,36 @@ async fn main() -> anyhow::Result<()> {
     if let Ok(userdic_server_url) = userdic_server_url {
         let data = data.clone();
         actix_web::rt::spawn(async move {
-            let res = async {
-                let client = awc::Client::default();
-                loop {
-                    let res: Vec<String> = client
-                        .get(&userdic_server_url)
-                        .send()
-                        .await
-                        .unwrap()
-                        .body()
-                        .limit(1024 * 1024 * 1024)
-                        .await
-                        .unwrap()
-                        .to_vec();
-                    let nouns: Vec<String> = serde_json::from_slice(&res).unwrap();
-                    if nouns.len() > 0 {
-                        data.read().await.gen_userdic(nouns).await.unwrap();
-                        data.write().await.reload();
-                    }
+            loop {
+                let res: Result<(), anyhow::Error> = (async {
+                    let client = awc::Client::default();
+                    loop {
+                        let res = client
+                            .get(&userdic_server_url)
+                            .send()
+                            .await.map_err(|_| anyhow::Error::msg("userdic server request fail"))?
+                            .body()
+                            .limit(1024 * 1024 * 1024)
+                            .await?
+                            .to_vec();
+                        let nouns: Vec<String> = serde_json::from_slice(&res)?;
+                        if !nouns.is_empty() {
+                            data.read().await.gen_userdic(nouns).await?;
+                            data.write().await.reload();
+                        }
+                        actix_web::rt::time::sleep(std::time::Duration::from_secs(
+                                userdic_sync_interval_seconds,
+                        ))
+                            .await;
+                        };
+                }).await;
+                if let Err(err) = res {
+                    println!("ERROR: {}", err);
                     actix_web::rt::time::sleep(std::time::Duration::from_secs(
-                        userdic_sync_interval_seconds,
+                            userdic_sync_interval_seconds,
                     ))
-                    .await;
+                        .await;
                 }
-                Ok::<(), anyhow::Error>(())
-            };
-            if let Err(err) = res.await {
-                println!("ERROR: {}", err);
             }
         });
     }

@@ -1,11 +1,6 @@
 use actix_web::{get, post, web, App, FromRequest, HttpResponse, HttpServer, Responder};
-use serde::Deserialize;
-
-mod tokenizer;
 
 use noun_extractor::model::{Score, State as NounExtractorState};
-
-use tokenizer::Tokenizer;
 
 use async_rwlock::RwLock;
 use rocksdb::{BlockBasedOptions, IteratorMode, Options, DB};
@@ -55,13 +50,11 @@ struct State {
     count_threshold: u32,
     noun_probability_threshold: f32,
     nouns: DB,
-    tokenizer: Tokenizer,
 }
 impl State {
     fn open<P: AsRef<Path>>(
         noun_extractor_model_path: P,
         store_path: P,
-        mecab_dic_path: P,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             noun_extractor: NounExtractorState::open(noun_extractor_model_path)?,
@@ -73,10 +66,9 @@ impl State {
             unique_suffixes_count_threshold: 5.0,
             count_threshold: 30,
             noun_probability_threshold: 0.9,
-            tokenizer: Tokenizer::new(mecab_dic_path),
         })
     }
-    pub fn threshold(
+    /*pub fn set_threshold(
         &mut self,
         unique_suffixes_count: f64,
         count: u32,
@@ -86,12 +78,6 @@ impl State {
         self.count_threshold = count;
         self.noun_probability_threshold = noun_probability;
         self
-    }
-    /*fn get(&self, k: &K) -> anyhow::Result<Option<V>> {
-        Ok(match self.inner.get(k.try_to_vec()?)? {
-            Some(bytes) => Some(V::try_from_slice(&bytes)?),
-            None => None,
-        })
     }*/
     fn train(&mut self, s: String) -> anyhow::Result<i32> {
         let s = control_chars(&s, "_");
@@ -121,17 +107,8 @@ impl State {
                 && score.unique_suffixes_hll.len() >= self.unique_suffixes_count_threshold
                 && score.count >= self.count_threshold
             {
-                //let tokens = self.tokenizer.tokenize(&candidate)?;
                 self.nouns.put(candidate, &[0])?;
                 count += 1;
-                /*if tokens.len() == 1 && tokens[0].tags.len() == 1 && tokens[0].tags[0].starts_with('N') {
-                    self.nouns.delete(&candidate)?;
-                    count -= 1;
-                } else {
-                    self.nouns.put(candidate, &[0])?;
-                    count += 1;
-                }*/
-                //println!("{:?}", count);
             } else {
                 self.nouns.delete(&candidate)?;
             }
@@ -172,9 +149,7 @@ async fn main() -> anyhow::Result<()> {
     let noun_extractor_model_path = std::env::var("NOUN_EXTRACTOR_MODEL_PATH")
         .unwrap_or_else(|_| "noun-extractor-model".to_string());
     let store_path = std::env::var("STORE_PATH").unwrap_or_else(|_| "store".to_string());
-    let mecab_dic_path =
-        std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
-    let state = State::open(noun_extractor_model_path, store_path, mecab_dic_path)?;
+    let state = State::open(noun_extractor_model_path, store_path)?;
     let data = web::Data::new(RwLock::new(state));
 
     Ok(HttpServer::new(move || {
@@ -202,11 +177,8 @@ mod tests {
             let noun_extractor_path =
                 std::env::var("NOUN_EXTRACTOR_PATH").expect("NOUN_EXTRACTOR_PATH");
             let scores_store_path = std::env::var("SCORES_STORE_PATH").expect("SCORES_STORE_PATH");
-            let noun_path = std::env::var("NOUNS_PATH").expect("SCORES_STORE_PATH");
-            let mecab_dic_path =
-                std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
             let state =
-                State::open(noun_extractor_path, scores_store_path, mecab_dic_path).unwrap();
+                State::open(noun_extractor_path, scores_store_path).unwrap();
             App::new()
                 .app_data(web::Data::new(RwLock::new(state)))
                 .service(train)
