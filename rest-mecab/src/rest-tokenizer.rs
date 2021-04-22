@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
 
 mod tokenizer;
@@ -42,7 +42,6 @@ async fn tokenize_post(
     Ok(HttpResponse::Ok().json(result))
 }
 
-
 #[get("/health")]
 async fn health() -> impl Responder {
     "ok"
@@ -50,14 +49,26 @@ async fn health() -> impl Responder {
 
 #[post("/sync-userdic")]
 async fn sync_userdic(tokenizer: web::Data<RwLock<Tokenizer>>) -> Result<String, Error> {
-    let userdic_server_url = std::env::var("USERDIC_SERVER_URL").map_err(|_| anyhow::Error::msg("USERDIC_SERVER_URL"))?;
+    let userdic_server_url = std::env::var("USERDIC_SERVER_URL")
+        .map_err(|_| anyhow::Error::msg("USERDIC_SERVER_URL"))?;
     let client = awc::Client::default();
-    let res = client.get(&userdic_server_url)
+    let res = client
+        .get(&userdic_server_url)
         .send()
-        .await.unwrap()
-        .body().limit(1024*1024*1024).await.unwrap().to_vec();
+        .await
+        .unwrap()
+        .body()
+        .limit(1024 * 1024 * 1024)
+        .await
+        .unwrap()
+        .to_vec();
     let nouns: Vec<String> = serde_json::from_slice(&res).unwrap();
-    tokenizer.read().await.gen_userdic(nouns).await.map_err(anyhow::Error::from)?;
+    tokenizer
+        .read()
+        .await
+        .gen_userdic(nouns)
+        .await
+        .map_err(anyhow::Error::from)?;
     tokenizer.write().await.reload();
     Ok("".to_string())
 }
@@ -66,11 +77,18 @@ async fn sync_userdic(tokenizer: web::Data<RwLock<Tokenizer>>) -> Result<String,
 async fn main() -> anyhow::Result<()> {
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let userdic_server_url = std::env::var("USERDIC_SERVER_URL");
-    let userdic_sync_interval_seconds: u64 = std::env::var("USERDIC_SYNC_INTERVAL_SECONDS").unwrap_or_else(|_| "86400".to_string()).parse()?;
-    let mecab_dic_path = std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
+    let userdic_sync_interval_seconds: u64 = std::env::var("USERDIC_SYNC_INTERVAL_SECONDS")
+        .unwrap_or_else(|_| "86400".to_string())
+        .parse()?;
+    let mecab_dic_path =
+        std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
     let tokenizer = Tokenizer::new(mecab_dic_path);
     let data = web::Data::new(RwLock::new(tokenizer));
-    data.read().await.gen_userdic(vec![]).await.map_err(anyhow::Error::from)?;
+    data.read()
+        .await
+        .gen_userdic(vec![])
+        .await
+        .map_err(anyhow::Error::from)?;
     data.write().await.reload();
     if let Ok(userdic_server_url) = userdic_server_url {
         let data = data.clone();
@@ -78,15 +96,25 @@ async fn main() -> anyhow::Result<()> {
             let res = async {
                 let client = awc::Client::default();
                 loop {
-                    let nouns: Vec<String> = client.get(&userdic_server_url)
+                    let res: Vec<String> = client
+                        .get(&userdic_server_url)
                         .send()
-                        .await.unwrap()
-                        .json().await.unwrap();
+                        .await
+                        .unwrap()
+                        .body()
+                        .limit(1024 * 1024 * 1024)
+                        .await
+                        .unwrap()
+                        .to_vec();
+                    let nouns: Vec<String> = serde_json::from_slice(&res).unwrap();
                     if nouns.len() > 0 {
                         data.read().await.gen_userdic(nouns).await.unwrap();
                         data.write().await.reload();
                     }
-                    actix_web::rt::time::sleep(std::time::Duration::from_secs(userdic_sync_interval_seconds)).await;
+                    actix_web::rt::time::sleep(std::time::Duration::from_secs(
+                        userdic_sync_interval_seconds,
+                    ))
+                    .await;
                 }
                 Ok::<(), anyhow::Error>(())
             };
@@ -97,7 +125,11 @@ async fn main() -> anyhow::Result<()> {
     }
     Ok(HttpServer::new(move || {
         let data = data.clone();
-        App::new().app_data(data).service(tokenize).service(sync_userdic).service(tokenize_post)
+        App::new()
+            .app_data(data)
+            .service(tokenize)
+            .service(sync_userdic)
+            .service(tokenize_post)
     })
     .bind(&format!("0.0.0.0:{}", port))?
     .run()

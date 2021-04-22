@@ -1,11 +1,11 @@
 userdic:
   replicas: 1
-  image: song9446/rest-lemmatizer:latest
+  image: song9446/rest-lemmatizer:0.1.0
   logLevel: WARN
   persistent:
     enabled: true
     storage: 10Gi
 tokenizer:
   replicas: 1
-  image: song9446/rest-lemmatizer:latest
+  image: song9446/rest-lemmatizer:0.1.0
   logLevel: WARN

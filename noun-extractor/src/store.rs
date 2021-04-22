@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use std::hash::Hash;
 use std::path::Path;
 pub trait Store<K, V>: Sized
@@ -17,7 +17,7 @@ pub mod hashmap_store {
     use super::Store;
     use anyhow::Result;
     //use serde::{Deserialize, Serialize};
-    use serde::{Serialize, de::DeserializeOwned};
+    use serde::{de::DeserializeOwned, Serialize};
     use std::collections::HashMap;
     use std::hash::Hash;
     use std::path::{Path, PathBuf};

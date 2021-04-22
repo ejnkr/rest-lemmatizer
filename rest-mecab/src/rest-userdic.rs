@@ -1,14 +1,14 @@
-use actix_web::{get, post, web, App, HttpServer, Responder, HttpResponse, FromRequest};
+use actix_web::{get, post, web, App, FromRequest, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
 
 mod tokenizer;
 
-use noun_extractor::model::{State as NounExtractorState, Score};
+use noun_extractor::model::{Score, State as NounExtractorState};
 
 use tokenizer::Tokenizer;
 
 use async_rwlock::RwLock;
-use rocksdb::{BlockBasedOptions, Options, DB, IteratorMode};
+use rocksdb::{BlockBasedOptions, IteratorMode, Options, DB};
 
 use std::path::Path;
 
@@ -51,27 +51,39 @@ fn rocksdb_default_opts() -> Options {
 struct State {
     noun_scores: DB,
     noun_extractor: NounExtractorState,
-    unique_suffixes_count_threshold: f64, 
+    unique_suffixes_count_threshold: f64,
     count_threshold: u32,
     noun_probability_threshold: f32,
     nouns: DB,
     tokenizer: Tokenizer,
 }
 impl State {
-    fn open<P: AsRef<Path>>(noun_extractor_model_path: P, store_path: P, mecab_dic_path: P) -> anyhow::Result<Self> {
+    fn open<P: AsRef<Path>>(
+        noun_extractor_model_path: P,
+        store_path: P,
+        mecab_dic_path: P,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             noun_extractor: NounExtractorState::open(noun_extractor_model_path)?,
-            noun_scores: DB::open(&rocksdb_default_opts(), store_path.as_ref().join("noun_scores"))?,
+            noun_scores: DB::open(
+                &rocksdb_default_opts(),
+                store_path.as_ref().join("noun_scores"),
+            )?,
             nouns: DB::open(&rocksdb_default_opts(), store_path.as_ref().join("nouns"))?,
             unique_suffixes_count_threshold: 5.0,
-            count_threshold:  30,
-            noun_probability_threshold:  0.9,
+            count_threshold: 30,
+            noun_probability_threshold: 0.9,
             tokenizer: Tokenizer::new(mecab_dic_path),
         })
     }
-    pub fn threshold(&mut self, unique_suffixes_count: f64, count: u32, noun_probability: f32) -> &mut Self {
+    pub fn threshold(
+        &mut self,
+        unique_suffixes_count: f64,
+        count: u32,
+        noun_probability: f32,
+    ) -> &mut Self {
         self.unique_suffixes_count_threshold = unique_suffixes_count;
-        self.count_threshold =  count;
+        self.count_threshold = count;
         self.noun_probability_threshold = noun_probability;
         self
     }
@@ -93,8 +105,10 @@ impl State {
                 score.merge(&prev_score);
             }
         }
-        self.nouns.set_options(&[("disable_auto_compactions", "true")])?;
-        self.noun_scores.set_options(&[("disable_auto_compactions", "true")])?;
+        self.nouns
+            .set_options(&[("disable_auto_compactions", "true")])?;
+        self.noun_scores
+            .set_options(&[("disable_auto_compactions", "true")])?;
         for (candidate, score) in scores.iter() {
             let key = bincode::serialize(&candidate)?;
             self.noun_scores.put(key, bincode::serialize(&score)?)?;
@@ -103,9 +117,10 @@ impl State {
         for (candidate, score) in scores {
             let key = bincode::serialize(&candidate)?;
             self.noun_scores.put(key, bincode::serialize(&score)?)?;
-            if score.noun_probability >= self.noun_probability_threshold 
-                && score.unique_suffixes_hll.len() >= self.unique_suffixes_count_threshold 
-                && score.count >= self.count_threshold {
+            if score.noun_probability >= self.noun_probability_threshold
+                && score.unique_suffixes_hll.len() >= self.unique_suffixes_count_threshold
+                && score.count >= self.count_threshold
+            {
                 //let tokens = self.tokenizer.tokenize(&candidate)?;
                 self.nouns.put(candidate, &[0])?;
                 count += 1;
@@ -121,15 +136,19 @@ impl State {
                 self.nouns.delete(&candidate)?;
             }
         }
-        self.nouns.set_options(&[("disable_auto_compactions", "false")])?;
-        self.noun_scores.set_options(&[("disable_auto_compactions", "false")])?;
+        self.nouns
+            .set_options(&[("disable_auto_compactions", "false")])?;
+        self.noun_scores
+            .set_options(&[("disable_auto_compactions", "false")])?;
         Ok(count)
     }
     fn nouns(&self) -> Vec<String> {
-        self.nouns.iterator(IteratorMode::Start).map(|(k, _)| String::from_utf8_lossy(&k).to_string()).collect()
+        self.nouns
+            .iterator(IteratorMode::Start)
+            .map(|(k, _)| String::from_utf8_lossy(&k).to_string())
+            .collect()
     }
 }
-
 
 #[post("/train")]
 async fn train(bytes: web::Bytes, state: web::Data<RwLock<State>>) -> Result<String, Error> {
@@ -150,9 +169,11 @@ async fn health() -> impl Responder {
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
-    let noun_extractor_model_path = std::env::var("NOUN_EXTRACTOR_MODEL_PATH").unwrap_or_else(|_| "noun-extractor-model".to_string());
+    let noun_extractor_model_path = std::env::var("NOUN_EXTRACTOR_MODEL_PATH")
+        .unwrap_or_else(|_| "noun-extractor-model".to_string());
     let store_path = std::env::var("STORE_PATH").unwrap_or_else(|_| "store".to_string());
-    let mecab_dic_path = std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
+    let mecab_dic_path =
+        std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
     let state = State::open(noun_extractor_model_path, store_path, mecab_dic_path)?;
     let data = web::Data::new(RwLock::new(state));
 
@@ -161,10 +182,10 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .app_data(data)
             .app_data(web::PayloadConfig::new(1024 * 1024 * 1024))
-            .app_data(web::Bytes::configure(|cfg| {
-                cfg.limit(1024 * 1024 * 1024)
-            }))
-            .service(train).service(nouns).service(health)
+            .app_data(web::Bytes::configure(|cfg| cfg.limit(1024 * 1024 * 1024)))
+            .service(train)
+            .service(nouns)
+            .service(health)
     })
     .bind(&format!("0.0.0.0:{}", port))?
     .run()
@@ -178,12 +199,19 @@ mod tests {
 
     fn test_server() -> actix_test::TestServer {
         actix_test::start_with(actix_test::config().h1(), || {
-            let noun_extractor_path = std::env::var("NOUN_EXTRACTOR_PATH").expect("NOUN_EXTRACTOR_PATH");
+            let noun_extractor_path =
+                std::env::var("NOUN_EXTRACTOR_PATH").expect("NOUN_EXTRACTOR_PATH");
             let scores_store_path = std::env::var("SCORES_STORE_PATH").expect("SCORES_STORE_PATH");
             let noun_path = std::env::var("NOUNS_PATH").expect("SCORES_STORE_PATH");
-            let mecab_dic_path = std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
-            let state = State::open(noun_extractor_path, scores_store_path, mecab_dic_path).unwrap();
-            App::new().app_data(web::Data::new(RwLock::new(state))).service(train).service(nouns).service(health)
+            let mecab_dic_path =
+                std::env::var("MECAB_DIC_PATH").unwrap_or_else(|_| "/mecab-dic".to_string());
+            let state =
+                State::open(noun_extractor_path, scores_store_path, mecab_dic_path).unwrap();
+            App::new()
+                .app_data(web::Data::new(RwLock::new(state)))
+                .service(train)
+                .service(nouns)
+                .service(health)
         })
     }
     #[actix_rt::test]
