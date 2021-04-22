@@ -1220,7 +1220,6 @@ dependencies = [
  "clap 3.0.0-beta.2",
  "env_logger 0.8.3",
  "hyperloglog",
- "lazy_static",
  "log",
  "rocksdb",
  "serde",

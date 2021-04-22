@@ -1,8 +1,8 @@
 use anyhow::{Error, Result};
-use mecab::Tagger;
-use std::path::{Path, PathBuf};
-use serde::{Serialize, Deserialize};
 use hangul_normalize::{control_chars, derepeat, whitespace_less};
+use mecab::Tagger;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
 pub fn has_support(c: char) -> bool {
     0xAC00 <= c as u32 && c as u32 <= 0xD7A3 && ((c as u32 - 0xAC00) % 28 != 0)
@@ -60,35 +60,80 @@ pub struct Analytics {
 impl Analytics {
     pub fn parse(s: &str) -> Result<Self> {
         let mut sp = s.split('\t');
-        let token = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string();
-        let mut sp = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.split(',');
-        let tags = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.split('+').map(|s| s.to_string()).collect();
-        let symantic_group = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let token = sp
+            .next()
+            .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+            .to_string();
+        let mut sp = sp
+            .next()
+            .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+            .split(',');
+        let tags = sp
+            .next()
+            .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+            .split('+')
+            .map(|s| s.to_string())
+            .collect();
+        let symantic_group = asterisk_as_none(
+            sp.next()
+                .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+                .to_string(),
+        );
         let has_support = match sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))? {
             "T" => Some(true),
             "F" => Some(false),
-            _ => None
+            _ => None,
         };
-        let pronounce = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
-        let kind = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
-        let left_tag = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
-        let right_tag = asterisk_as_none(sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?.to_string());
+        let pronounce = asterisk_as_none(
+            sp.next()
+                .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+                .to_string(),
+        );
+        let kind = asterisk_as_none(
+            sp.next()
+                .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+                .to_string(),
+        );
+        let left_tag = asterisk_as_none(
+            sp.next()
+                .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+                .to_string(),
+        );
+        let right_tag = asterisk_as_none(
+            sp.next()
+                .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
+                .to_string(),
+        );
         let morphemes = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?;
         let morphemes = if morphemes == "*" {
             None
         } else {
-            Some(morphemes.split('+').map(|s| {
-                let mut splited = s.split('/');
-                match (splited.next(), splited.next()) {
-                    (Some(token), Some(tag)) => Ok(Morpheme {
-                        token: token.to_string(), tag: tag.to_string()
-                    }),
-                    _ => Err(anyhow::Error::msg(s.to_string())),
-                }
-            }).collect::<Result<Vec<Morpheme>>>()?)
+            Some(
+                morphemes
+                    .split('+')
+                    .map(|s| {
+                        let mut splited = s.split('/');
+                        match (splited.next(), splited.next()) {
+                            (Some(token), Some(tag)) => Ok(Morpheme {
+                                token: token.to_string(),
+                                tag: tag.to_string(),
+                            }),
+                            _ => Err(anyhow::Error::msg(s.to_string())),
+                        }
+                    })
+                    .collect::<Result<Vec<Morpheme>>>()?,
+            )
         };
         Ok(Analytics {
-            token, tags, symantic_group, has_support, pronounce, kind, left_tag, right_tag, morphemes
+            token,
+            tags,
+            symantic_group,
+            has_support,
+            pronounce,
+            kind,
+            left_tag,
+            right_tag,
+            morphemes,
         })
     }
 }
@@ -105,7 +150,17 @@ impl Tokenizer {
         let s = control_chars(&q, "_");
         let s = whitespace_less(&s);
         let s = derepeat(&s, 3);
-        self.tagger.parse_str(q).lines().filter_map(|l| if l != "EOS" { Some(Analytics::parse(l)) } else { None }).collect()
+        self.tagger
+            .parse_str(s)
+            .lines()
+            .filter_map(|l| {
+                if l != "EOS" {
+                    Some(Analytics::parse(l))
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
     pub async fn gen_userdic(&self, nouns: Vec<String>) -> Result<()> {
         let path = self.mecab_dic_path.clone();

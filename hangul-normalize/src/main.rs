@@ -1,14 +1,13 @@
-use derive_more::From;
 use clap::Clap;
+use derive_more::From;
 use std::{
     fs::File,
-    io::{Read, Write, BufReader, stdin, stdout, Stdout, BufRead},
+    io::{stdin, stdout, BufRead, BufReader, Read, Stdout, Write},
 };
 
 mod lib;
 
 use lib::*;
-
 
 #[derive(From)]
 enum Writer {
@@ -16,7 +15,7 @@ enum Writer {
     Stdout(Stdout),
 }
 impl Writer {
-    fn write_all(&mut self, text: &[u8]) -> anyhow::Result<()>{
+    fn write_all(&mut self, text: &[u8]) -> anyhow::Result<()> {
         match self {
             Writer::File(writer) => writer.write_all(text),
             Writer::Stdout(writer) => writer.write_all(text),

@@ -95,14 +95,11 @@ fn main() -> anyhow::Result<()> {
                     buf
                 }
             };
-            let rows = state
-                .extract_nouns2(&input)?
-                .into_iter()
-                .filter(|r| {
-                    r.1.noun_probability >= opts.prob_threshold
-                        && r.1.count >= opts.count_threshold
-                        && r.1.unique_suffixes_hll.len() >= opts.unique_suffixes_threshold.into()
-                });
+            let rows = state.extract_nouns2(&input)?.into_iter().filter(|r| {
+                r.1.noun_probability >= opts.prob_threshold
+                    && r.1.count >= opts.count_threshold
+                    && r.1.unique_suffixes_hll.len() >= opts.unique_suffixes_threshold.into()
+            });
             /*if opts.online {
                 let ac = aho_corasick::AhoCorasick::new(
                     rows.iter()
@@ -127,7 +124,10 @@ fn main() -> anyhow::Result<()> {
                 .map(|r| {
                     format!(
                         "{}\t{}\t{}\t{}",
-                        r.0, r.1.noun_probability, r.1.count, r.1.unique_suffixes_hll.len()
+                        r.0,
+                        r.1.noun_probability,
+                        r.1.count,
+                        r.1.unique_suffixes_hll.len()
                     )
                 })
                 .collect::<Vec<_>>()
@@ -148,20 +148,20 @@ fn main() -> anyhow::Result<()> {
                     buf
                 }
             };
-            let rows = state
-                .extract_nouns(&input)?
-                .into_iter()
-                .filter(|r| {
-                    r.1.noun_probability >= opts.prob_threshold
-                        && r.1.count >= opts.count_threshold
-                        && r.1.unique_suffixes_hll.len() >= opts.unique_suffixes_threshold.into()
-                });
+            let rows = state.extract_nouns(&input)?.into_iter().filter(|r| {
+                r.1.noun_probability >= opts.prob_threshold
+                    && r.1.count >= opts.count_threshold
+                    && r.1.unique_suffixes_hll.len() >= opts.unique_suffixes_threshold.into()
+            });
             let nl_str = rows
                 .into_iter()
                 .map(|r| {
                     format!(
                         "{}\t{}\t{}\t{}",
-                        r.0, r.1.noun_probability, r.1.count, r.1.unique_suffixes_hll.len()
+                        r.0,
+                        r.1.noun_probability,
+                        r.1.count,
+                        r.1.unique_suffixes_hll.len()
                     )
                 })
                 .collect::<Vec<_>>()

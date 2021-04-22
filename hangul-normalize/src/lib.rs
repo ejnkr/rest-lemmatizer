@@ -1,9 +1,7 @@
-use lazy_static::lazy_static;
 use clap::Clap;
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::iter;
-
-
 
 #[derive(Clap)]
 #[clap(version = "1.0", author = "Kevin K. <kbknapp@gmail.com>")]
@@ -26,45 +24,59 @@ pub struct Opts {
 
 pub fn control_chars(text: &str, replacer: &str) -> String {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"[^A-Za-z0-9ㄱ-ㅎㅏ-ㅣ가-힣~!?.,():;*/=+\-\[\]\s\n<>]").unwrap();
+        static ref RE: Regex =
+            Regex::new(r"[^A-Za-z0-9ㄱ-ㅎㅏ-ㅣ가-힣~!?.,():;*/=+\-\[\]\s\n<>]").unwrap();
     }
     RE.replace_all(text, replacer).into_owned()
 }
 
-
 pub fn hangul_to_jamo(text: String) -> String {
-    const CHO: [char; 19]  = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
-    const JUNG: [char; 21]  = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'];
-    const JONG: [char; 28]  = ['\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
-    text.chars().flat_map(|c| {
-        if '가' <= c && c <= '힣' {
-            let c = c as usize;
-            let cho_index =  (c - 44032) / 588;
-            let jung_index =  (c - 44032 - cho_index * 588) / 28;
-            let jong_index =  c - 44032 - cho_index * 588 - jung_index * 28;
-            iter::once(CHO[cho_index]).chain(iter::once(JUNG[jung_index])).chain(iter::once(JONG[jong_index]))
-        } else {
-            iter::once(c).chain(iter::once('\0')).chain(iter::once('\0'))
-        }
-    }).filter(|c| c != &'\0').collect()
+    const CHO: [char; 19] = [
+        'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ',
+        'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
+    ];
+    const JUNG: [char; 21] = [
+        'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ',
+        'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ',
+    ];
+    const JONG: [char; 28] = [
+        '\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ',
+        'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
+    ];
+    text.chars()
+        .flat_map(|c| {
+            if ('가'..='힣').contains(&c) {
+                let c = c as usize;
+                let cho_index = (c - 44032) / 588;
+                let jung_index = (c - 44032 - cho_index * 588) / 28;
+                let jong_index = c - 44032 - cho_index * 588 - jung_index * 28;
+                iter::once(CHO[cho_index])
+                    .chain(iter::once(JUNG[jung_index]))
+                    .chain(iter::once(JONG[jong_index]))
+            } else {
+                iter::once(c)
+                    .chain(iter::once('\0'))
+                    .chain(iter::once('\0'))
+            }
+        })
+        .filter(|c| c != &'\0')
+        .collect()
 }
 
-pub fn derepeat(text: &str, n: usize) -> String{
+pub fn derepeat(text: &str, n: usize) -> String {
     let mut last_char: char = '𝕊';
     let mut repeat: usize = 0;
-    text.chars().filter_map(|c| {
-        if last_char == c {
-            repeat += 1;
-        } else {
-            repeat = 0;
-            last_char = c;
-        }
-        if repeat >= n {
-            None
-        } else {
-            Some(c)
-        }
-    }).collect()
+    text.chars()
+        .filter(|c| {
+            if last_char == *c {
+                repeat += 1;
+            } else {
+                repeat = 0;
+                last_char = *c;
+            }
+            repeat < n 
+        })
+        .collect()
 }
 
 /*pub fn space_around_ic(text: &str) -> String {
@@ -85,27 +97,26 @@ pub fn derepeat(text: &str, n: usize) -> String{
             iter::once(c).chain(iter::once('\0'))
         };
         last_char = c;
-        next_chars 
+        next_chars
     }).filter(|c| c != &'\0').collect()
 }*/
 
 pub fn whitespace_less(text: &str) -> String {
     let mut last_char: char = '𝕊';
-    text.trim().chars().filter_map(|c| {
-        if char::is_whitespace(last_char) && char::is_whitespace(c) {
-            if c == '\t' {
-                Some(c)
+    text.trim()
+        .chars()
+        .filter(|c| {
+            if char::is_whitespace(last_char) && char::is_whitespace(*c) {
+                *c == '\t'
             } else {
-                None
+                last_char = *c;
+                true
             }
-        } else {
-            last_char = c;
-            Some(c)
-        }
-    }).collect()
+        })
+        .collect()
 }
 
-pub fn normalize<'a>(text: String, opts: &'a Opts) -> String {
+pub fn normalize(text: String, opts: &'_ Opts) -> String {
     let text = match &opts.control_chars {
         Some(c) => control_chars(&text, &c),
         None => text,
@@ -118,11 +129,10 @@ pub fn normalize<'a>(text: String, opts: &'a Opts) -> String {
         true => whitespace_less(&text),
         false => text,
     };
-    let text = match &opts.hangul_to_jamo {
+    match &opts.hangul_to_jamo {
         true => hangul_to_jamo(text),
         false => text,
-    };
-    text
+    }
 }
 
 #[cfg(test)]
@@ -131,23 +141,34 @@ mod tests {
 
     #[test]
     fn it_whitespace_less() {
-        assert_eq!(whitespace_less("   가     나  다 라    "), "가 나 다 라".to_string());
+        assert_eq!(
+            whitespace_less("   가     나  다 라    "),
+            "가 나 다 라".to_string()
+        );
     }
     #[test]
     fn it_hangul_to_jamo() {
-        assert_eq!(hangul_to_jamo("가힣 뷁 ab123킼ㄱㄴㄷ".to_string()), "ㄱㅏㅎㅣㅎ ㅂㅞㄺ ab123ㅋㅣㅋㄱㄴㄷ".to_string());
+        assert_eq!(
+            hangul_to_jamo("가힣 뷁 ab123킼ㄱㄴㄷ".to_string()),
+            "ㄱㅏㅎㅣㅎ ㅂㅞㄺ ab123ㅋㅣㅋㄱㄴㄷ".to_string()
+        );
     }
     #[test]
     fn it_control_chars() {
-        assert_eq!(control_chars("가힣#ㄱㅏz1()!?[]/ &", "흠"), "가힣흠ㄱㅏz1()!?[]/ 흠".to_string());
+        assert_eq!(
+            control_chars("가힣#ㄱㅏz1()!?[]/ &", "흠"),
+            "가힣흠ㄱㅏz1()!?[]/ 흠".to_string()
+        );
     }
     #[test]
     fn it_derepeat() {
-        assert_eq!(derepeat("아아아아아 음음음 호호호호 홀홀 ", 3), "아아아 음음음 호호호 홀홀 ".to_string());
+        assert_eq!(
+            derepeat("아아아아아 음음음 호호호호 홀홀 ", 3),
+            "아아아 음음음 호호호 홀홀 ".to_string()
+        );
     }
     /*#[test]
     fn it_space_around_ic() {
         assert_eq!(space_around_ic("ㅋㅋㅋㅠㅠㅜㅠㅜㅎㅎ그른가"), "ㅋㅋㅋㅠㅠㅜㅠㅜㅎㅎ 그른가".to_string());
     }*/
-
 }

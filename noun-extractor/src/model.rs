@@ -1,15 +1,14 @@
-use crate::store::{Store, hashmap_store::StoreImpl as HashMapStoreImpl};
+use crate::store::{hashmap_store::StoreImpl as HashMapStoreImpl, Store};
 use anyhow::Result;
-use lazy_static::lazy_static;
 use log::debug;
 //use serde::{Deserialize, Serialize};
 //use hashbrown::HashMap;
 use std::collections::HashMap;
 //use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use crate::util::has_support;
-use std::path::Path;
 use hyperloglog::HyperLogLog;
+use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 #[derive(Deserialize, Serialize, Hash, PartialOrd, Eq, Debug, PartialEq, Default)]
 pub struct Suffix {
@@ -45,7 +44,8 @@ impl Score {
     pub fn merge(&mut self, o: &Self) {
         self.count += o.count;
         self.unique_suffixes_hll.merge(&o.unique_suffixes_hll);
-        self.noun_probability = 1. / ( 1.  +  ((1. / self.noun_probability - 1.)*(1. / o.noun_probability - 1.)) );
+        self.noun_probability =
+            1. / (1. + ((1. / self.noun_probability - 1.) * (1. / o.noun_probability - 1.)));
     }
 }
 impl Default for Score {
@@ -59,7 +59,7 @@ const DEFAULT_SMOOTH_FACTOR: f64 = 0.5;
 const MAX_POSTFIX_SIZE: usize = 3;
 
 const LARGE_NUMBER: u32 = 250;
-// P(|X - M| > e) <= p(1-p)/(ne^2), 
+// P(|X - M| > e) <= p(1-p)/(ne^2),
 // e == 0.1 => n = 250
 
 pub struct State {
@@ -74,8 +74,12 @@ impl State {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         Ok(State {
             suffix_count_store: HashMapStoreImpl::open(path.as_ref().join("suffix"))?,
-            noun_count: std::fs::read_to_string(path.as_ref().join("noun_count")).unwrap_or_else(|_| "0".to_string()).parse()?,
-            other_count: std::fs::read_to_string(path.as_ref().join("other_count")).unwrap_or_else(|_| "0".to_string()).parse()?,
+            noun_count: std::fs::read_to_string(path.as_ref().join("noun_count"))
+                .unwrap_or_else(|_| "0".to_string())
+                .parse()?,
+            other_count: std::fs::read_to_string(path.as_ref().join("other_count"))
+                .unwrap_or_else(|_| "0".to_string())
+                .parse()?,
             smooth_factor: DEFAULT_SMOOTH_FACTOR,
             path: path.as_ref().to_path_buf(),
         })
@@ -86,11 +90,16 @@ impl State {
     }
     pub fn save(&self) -> Result<()> {
         self.suffix_count_store.save()?;
-        std::fs::write(self.path.clone().join("noun_count"), self.noun_count.to_string())?;
-        std::fs::write(self.path.clone().join("other_count"), self.other_count.to_string())?;
+        std::fs::write(
+            self.path.clone().join("noun_count"),
+            self.noun_count.to_string(),
+        )?;
+        std::fs::write(
+            self.path.clone().join("other_count"),
+            self.other_count.to_string(),
+        )?;
         Ok(())
     }
-    
 
     pub fn train_line_bytes_pos(&mut self, text: &str, noun_poses: &[(u32, u32)]) -> Result<()> {
         if text.is_empty() {
@@ -207,7 +216,7 @@ impl State {
     }
     pub fn observe_postother(&mut self, last_target_char: char, suffix: String) -> Result<()> {
         self.other_count += 1;
-        
+
         let key = Suffix {
             target_has_support: has_support(last_target_char),
             last_char: last_target_char as u32,
@@ -236,11 +245,7 @@ impl State {
         }
     }
 
-    fn suffix_noun_prob2(
-        &self,
-        last_target_char: char,
-        suffix: String,
-    ) -> Result<f64> {
+    fn suffix_noun_prob2(&self, last_target_char: char, suffix: String) -> Result<f64> {
         let key = Suffix {
             target_has_support: has_support(last_target_char),
             last_char: last_target_char as u32,
@@ -276,13 +281,9 @@ impl State {
             _ => 0.0,
         };
         Ok(with_lastchar + without_lastchar)
-    } 
+    }
 
-    fn suffix_noun_prob1(
-        &self,
-        last_target_char: char,
-        suffix: String,
-    ) -> Result<f64> {
+    fn suffix_noun_prob1(&self, last_target_char: char, suffix: String) -> Result<f64> {
         let noun_count = self.noun_count as f64;
         let other_count = self.other_count as f64;
         let key = Suffix {
@@ -323,7 +324,6 @@ impl State {
         };
         Ok(with_lastchar + without_lastchar)
     }
-
 
     /*fn suffix_likelihood(
         &self,
@@ -393,10 +393,7 @@ impl State {
                 }
                 for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i - 1) {
                     //let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
-                    let word = (
-                        chars[word_start_index..(i + 1 + j)].to_vec(),
-                        j,
-                    );
+                    let word = (chars[word_start_index..(i + 1 + j)].to_vec(), j);
                     *words.entry(word).or_insert(0) += 1;
                 }
             }
@@ -413,12 +410,9 @@ impl State {
         for ((word, suffix_len), count) in words.into_iter() {
             let candidate = word[..word.len() - suffix_len].iter().collect();
             let suffix = word[word.len() - suffix_len..].iter().collect::<String>();
-            let prob = self.suffix_noun_prob2(
-                word[word.len() - suffix_len - 1],
-                suffix.clone(),
-            )?;
+            let prob = self.suffix_noun_prob2(word[word.len() - suffix_len - 1], suffix.clone())?;
             debug!("{} ~ {:?}: {:?}({:?})", &candidate, &suffix, prob, count);
-            let s = candidates.entry(candidate).or_insert(Score::default());
+            let s = candidates.entry(candidate).or_insert_with(Score::default);
             s.noun_probability += count as f32 * prob as f32;
             if suffix_len == 1 && prob != 0.0 {
                 s.observe_suffix(&suffix);
@@ -446,7 +440,9 @@ impl State {
             } else if s2.noun_probability.is_nan() {
                 std::cmp::Ordering::Less
             } else {
-                ((s2.count as f32).log10() * s2.noun_probability * s2.unique_suffixes_hll.len() as f32)
+                ((s2.count as f32).log10()
+                    * s2.noun_probability
+                    * s2.unique_suffixes_hll.len() as f32)
                     .partial_cmp(
                         &((s1.count as f32).log10()
                             * s1.noun_probability
@@ -481,10 +477,7 @@ impl State {
                 }
                 for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i - 1) {
                     //let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
-                    let word = (
-                        chars[word_start_index..(i + 1 + j)].to_vec(),
-                        j,
-                    );
+                    let word = (chars[word_start_index..(i + 1 + j)].to_vec(), j);
                     *words.entry(word).or_insert(0) += 1;
                 }
             }
@@ -501,15 +494,13 @@ impl State {
         for ((word, suffix_len), count) in words.into_iter() {
             let candidate = word[..word.len() - suffix_len].iter().collect();
             let suffix = word[word.len() - suffix_len..].iter().collect::<String>();
-            let prob = self.suffix_noun_prob1(
-                word[word.len() - suffix_len - 1],
-                suffix.clone(),
-            )? + self.suffix_noun_prob1(
-                word[word.len() - suffix_len - 1],
-                " ".to_string() + suffix.as_str(),
-            )?;
+            let prob = self.suffix_noun_prob1(word[word.len() - suffix_len - 1], suffix.clone())?
+                + self.suffix_noun_prob1(
+                    word[word.len() - suffix_len - 1],
+                    " ".to_string() + suffix.as_str(),
+                )?;
             debug!("{} ~ {:?}: {:?}({:?})", &candidate, &suffix, prob, count);
-            let s = candidates.entry(candidate).or_insert(Score::default());
+            let s = candidates.entry(candidate).or_insert_with(Score::default);
             s.noun_probability += count as f32 * prob as f32;
             if suffix_len == 1 && prob != 0.0 {
                 s.observe_suffix(&suffix);
@@ -522,7 +513,9 @@ impl State {
                 (
                     key,
                     Score::new(
-                        1.0 / (1.0 + (self.other_count as f32 / self.noun_count as f32) * s.noun_probability.exp()),
+                        1.0 / (1.0
+                            + (self.other_count as f32 / self.noun_count as f32)
+                                * s.noun_probability.exp()),
                         s.count,
                         s.unique_suffixes_hll,
                     ),
@@ -537,7 +530,9 @@ impl State {
             } else if s2.noun_probability.is_nan() {
                 std::cmp::Ordering::Less
             } else {
-                ((s2.count as f32).log10() * s2.noun_probability * s2.unique_suffixes_hll.len() as f32)
+                ((s2.count as f32).log10()
+                    * s2.noun_probability
+                    * s2.unique_suffixes_hll.len() as f32)
                     .partial_cmp(
                         &((s1.count as f32).log10()
                             * s1.noun_probability
@@ -549,7 +544,6 @@ impl State {
         Ok(res)
     }
 
-    
     /*{
         let noun_count: f32 = self.noun_count_store.get(&NOUN_COUNT_KEY)?.unwrap_or(0u32) as f32;
         let other_count: f32 = self.noun_count_store.get(&OTHER_COUNT_KEY)?.unwrap_or(0u32) as f32;
