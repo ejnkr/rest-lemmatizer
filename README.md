@@ -11,6 +11,7 @@ mecab-ko 기반의 rest api server 형태의 형태소 추출기
 
 형태소 분석기와 신조어 명사학습기를 분리하여 스케일 아웃이 용이하도록 만듬
 
+
 # 기능 구현
 
 - [x] 명사 추출 모듈
@@ -32,7 +33,9 @@ $ helm install my-release rest-lemmatizer/rest-lemmatizer
 
 이 경우 설치 파라미터는 디폴트 값을 가지게됨.
 
-설정 파라미터에 대해서는 `charts/rest-lemmatizer/values.yaml`를 참조
+tokenizer.replicas 값을 설정하여 형태소추출기를 스케일아웃 시킬수 있음(명사추출기는 아직 확장이 불가능함)
+
+다른 설정 파라미터에 대해서는 `charts/rest-lemmatizer/values.yaml`를 참조
 
 
 # 학습 원리
@@ -63,5 +66,6 @@ $ curl -XPOST `my-release-tokenizer:8080/tokenize?q=<text>
 
 # TODO
 
-- [ ] 형태소 추출기 - 명사 추출기 동기화 주기 파라미터화
+- [ ] 명사 추출기의 threshold 파라미터화
+- [ ] 형태소 추출기 - 명사 추출기 동기화 주기 파라미터화(지금은 하루로 설정되있음)
 - [ ] hash-sharding을 이용해 명사 추출기도 스케일 아웃이 가능하도록 만들기
