@@ -391,7 +391,7 @@ impl State {
                     word_start_index = i + 1;
                     continue;
                 }
-                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i - 1) {
+                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i) {
                     //let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
                     let word = (chars[word_start_index..(i + 1 + j)].to_vec(), j);
                     *words.entry(word).or_insert(0) += 1;
@@ -475,7 +475,7 @@ impl State {
                     word_start_index = i + 1;
                     continue;
                 }
-                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i - 1) {
+                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i ) {
                     //let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
                     let word = (chars[word_start_index..(i + 1 + j)].to_vec(), j);
                     *words.entry(word).or_insert(0) += 1;
@@ -570,7 +570,7 @@ impl State {
                 }
                 let candidate = chars[word_start_index..i + 1].iter().collect::<String>();
                 let candidate_last_char = chars[i];
-                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i - 1) {
+                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i) {
                     let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
                     let (nl, ol) = self.suffix_likelihood(
                         candidate_last_char,
