@@ -170,6 +170,20 @@ async fn main() -> anyhow::Result<()> {
     let store_path = std::env::var("STORE_PATH").unwrap_or_else(|_| "store".to_string());
     let state = State::open(noun_extractor_model_path, store_path)?;
     let data = web::Data::new(RwLock::new(state));
+    let unique_suffixes_count_threshold: f64 = std::env::var("UNIQUE_SUFFIXES_COUNT_THRESHOLD")
+        .unwrap_or_else(|_| "5.0".to_string())
+        .parse()?;
+    let count_threshold: u32 = std::env::var("COUNT_THRESHOLD")
+        .unwrap_or_else(|_| "30".to_string())
+        .parse()?;
+    let noun_probability_threshold: f32 = std::env::var("NOUN_PROBABILITY_THRESHOLD")
+        .unwrap_or_else(|_| "0.9".to_string())
+        .parse()?;
+    data.write().await.set_threshold(
+        unique_suffixes_count_threshold,
+        count_threshold,
+        noun_probability_threshold,
+    );
 
     Ok(HttpServer::new(move || {
         let data = data.clone();

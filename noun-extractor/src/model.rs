@@ -475,7 +475,7 @@ impl State {
                     word_start_index = i + 1;
                     continue;
                 }
-                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i ) {
+                for j in 1..MAX_POSTFIX_SIZE.min(chars.len() - i) {
                     //let suffix = chars[i + 1..i + 1 + j].iter().collect::<String>();
                     let word = (chars[word_start_index..(i + 1 + j)].to_vec(), j);
                     *words.entry(word).or_insert(0) += 1;

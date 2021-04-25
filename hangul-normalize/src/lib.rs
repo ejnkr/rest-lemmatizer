@@ -74,7 +74,7 @@ pub fn derepeat(text: &str, n: usize) -> String {
                 repeat = 0;
                 last_char = *c;
             }
-            repeat < n 
+            repeat < n
         })
         .collect()
 }
