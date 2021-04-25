@@ -1,6 +1,7 @@
 use actix_web::{get, post, web, App, FromRequest, HttpResponse, HttpServer, Responder};
 
 use noun_extractor::model::{Score, State as NounExtractorState};
+use serde::Deserialize;
 
 use async_rwlock::RwLock;
 use rocksdb::{BlockBasedOptions, IteratorMode, Options, DB};
@@ -52,10 +53,7 @@ struct State {
     nouns: DB,
 }
 impl State {
-    fn open<P: AsRef<Path>>(
-        noun_extractor_model_path: P,
-        store_path: P,
-    ) -> anyhow::Result<Self> {
+    fn open<P: AsRef<Path>>(noun_extractor_model_path: P, store_path: P) -> anyhow::Result<Self> {
         Ok(Self {
             noun_extractor: NounExtractorState::open(noun_extractor_model_path)?,
             noun_scores: DB::open(
@@ -68,7 +66,7 @@ impl State {
             noun_probability_threshold: 0.9,
         })
     }
-    /*pub fn set_threshold(
+    pub fn set_threshold(
         &mut self,
         unique_suffixes_count: f64,
         count: u32,
@@ -78,7 +76,7 @@ impl State {
         self.count_threshold = count;
         self.noun_probability_threshold = noun_probability;
         self
-    }*/
+    }
     fn train(&mut self, s: String) -> anyhow::Result<i32> {
         let s = control_chars(&s, "_");
         let s = whitespace_less(&s);
@@ -143,6 +141,27 @@ async fn health() -> impl Responder {
     "ok"
 }
 
+#[derive(Deserialize)]
+struct SetThresholdQuery {
+    unique_suffixes_count: f64,
+    count: u32,
+    noun_probability: f32,
+}
+
+#[post("/set-threshold")]
+async fn set_threshold(
+    query: web::Json<SetThresholdQuery>,
+    state: web::Data<RwLock<State>>,
+) -> impl Responder {
+    let query = query.into_inner();
+    state.write().await.set_threshold(
+        query.unique_suffixes_count,
+        query.count,
+        query.noun_probability,
+    );
+    "done"
+}
+
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
@@ -161,6 +180,7 @@ async fn main() -> anyhow::Result<()> {
             .service(train)
             .service(nouns)
             .service(health)
+            .service(set_threshold)
     })
     .bind(&format!("0.0.0.0:{}", port))?
     .run()
@@ -177,8 +197,7 @@ mod tests {
             let noun_extractor_path =
                 std::env::var("NOUN_EXTRACTOR_PATH").expect("NOUN_EXTRACTOR_PATH");
             let scores_store_path = std::env::var("SCORES_STORE_PATH").expect("SCORES_STORE_PATH");
-            let state =
-                State::open(noun_extractor_path, scores_store_path).unwrap();
+            let state = State::open(noun_extractor_path, scores_store_path).unwrap();
             App::new()
                 .app_data(web::Data::new(RwLock::new(state)))
                 .service(train)

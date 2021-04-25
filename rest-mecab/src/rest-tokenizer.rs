@@ -100,7 +100,8 @@ async fn main() -> anyhow::Result<()> {
                         let res = client
                             .get(&userdic_server_url)
                             .send()
-                            .await.map_err(|_| anyhow::Error::msg("userdic server request fail"))?
+                            .await
+                            .map_err(|_| anyhow::Error::msg("userdic server request fail"))?
                             .body()
                             .limit(1024 * 1024 * 1024)
                             .await?
@@ -111,17 +112,18 @@ async fn main() -> anyhow::Result<()> {
                             data.write().await.reload();
                         }
                         actix_web::rt::time::sleep(std::time::Duration::from_secs(
-                                userdic_sync_interval_seconds,
+                            userdic_sync_interval_seconds,
                         ))
-                            .await;
-                        };
-                }).await;
+                        .await;
+                    }
+                })
+                .await;
                 if let Err(err) = res {
                     println!("ERROR: {}", err);
                     actix_web::rt::time::sleep(std::time::Duration::from_secs(
-                            userdic_sync_interval_seconds,
+                        userdic_sync_interval_seconds,
                     ))
-                        .await;
+                    .await;
                 }
             }
         });
