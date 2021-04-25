@@ -117,6 +117,14 @@ impl State {
             .set_options(&[("disable_auto_compactions", "false")])?;
         Ok(count)
     }
+    fn noun_score(&self, noun: &str) -> anyhow::Result<Option<Score>> {
+        let key = bincode::serialize(&noun)?;
+        if let Some(bytes) = self.noun_scores.get(&key)? {
+            Ok(Some(bincode::deserialize(&bytes)?))
+        } else {
+            Ok(None)
+        }
+    }
     fn nouns(&self) -> Vec<String> {
         self.nouns
             .iterator(IteratorMode::Start)
@@ -134,6 +142,17 @@ async fn train(bytes: web::Bytes, state: web::Data<RwLock<State>>) -> Result<Str
 #[get("/nouns")]
 async fn nouns(state: web::Data<RwLock<State>>) -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Ok().json(state.read().await.nouns()))
+}
+
+#[derive(Deserialize)]
+struct ScoreQuery {
+    noun: String,
+}
+#[get("/noun-score")]
+async fn noun_score(state: web::Data<RwLock<State>>, query: web::Query<ScoreQuery>) -> Result<HttpResponse, Error> {
+    let noun = query.into_inner().noun;
+    let score = state.read().await.noun_score(&noun)?;
+    Ok(HttpResponse::Ok().json(score))
 }
 
 #[get("/health")]
@@ -195,6 +214,7 @@ async fn main() -> anyhow::Result<()> {
             .service(nouns)
             .service(health)
             .service(set_threshold)
+            .service(noun_score)
     })
     .bind(&format!("0.0.0.0:{}", port))?
     .run()
