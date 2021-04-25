@@ -23,7 +23,7 @@ RUN . ~/.cargo/env && RUSTFLAGS="-C target-feature=-crt-static"  cargo build --r
 FROM alpine
 
 ARG MECAB_URL=https://bitbucket.org/eunjeon/mecab-ko/downloads/mecab-0.996-ko-0.9.2.tar.gz
-ARG MECAB_DIC_URL=https://bitbucket.org/eunjeon/mecab-ko-dic/downloads/mecab-ko-dic-2.0.1-20150920.tar.gz
+ARG MECAB_DIC_URL=https://bitbucket.org/eunjeon/mecab-ko-dic/downloads/mecab-ko-dic-2.1.1-20180720.tar.gz
 
 ENV MECAB_DIC_PATH=/mecab-dic
 
