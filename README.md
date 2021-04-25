@@ -66,6 +66,5 @@ $ curl -XPOST `my-release-tokenizer:8080/tokenize?q=<text>
 
 # TODO
 
-- [ ] 명사 추출기의 threshold 파라미터화
 - [ ] 형태소 추출기 - 명사 추출기 동기화 주기 파라미터화(지금은 하루로 설정되있음)
 - [ ] hash-sharding을 이용해 명사 추출기도 스케일 아웃이 가능하도록 만들기

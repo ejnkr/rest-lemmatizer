@@ -61,6 +61,12 @@ spec:
             value: {{ .Values.userdic.logLevel }}
           - name: PORT
             value: "8080"
+          - name: UNIQUE_SUFFIXES_COUNT_THRESHOLD
+            value: {{ .Values.userdic.config.uniqueSuffixesCountThreshold | quote }}
+          - name: COUNT_THRESHOLD
+            value: {{ .Values.userdic.config.countThreshold | quote }}
+          - name: NOUN_PROBABILITY_THRESHOLD
+            value: {{ .Values.userdic.config.nounProbabilityThreshold | quote }}
         resources:
 {{ toYaml .Values.userdic.resources | indent 10 }}
       {{- if .Values.userdic.nodeSelector }}
