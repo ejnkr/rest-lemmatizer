@@ -35,10 +35,11 @@ spec:
             value: "8080"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /tokenize?q=hello
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 3
+          failureThreshold: 20
         resources:
 {{ toYaml .Values.tokenizer.resources | indent 10 }}
       {{- if .Values.tokenizer.nodeSelector }}
