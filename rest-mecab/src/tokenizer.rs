@@ -28,9 +28,6 @@ pub struct Tokenizer {
     mecab_dic_path: PathBuf,
 }
 
-unsafe impl Send for Tokenizer {}
-unsafe impl Sync for Tokenizer {}
-
 fn asterisk_as_none(s: String) -> Option<String> {
     if s == "*" {
         None
@@ -199,10 +196,40 @@ impl Tokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::thread;
     #[test]
-    fn tokenize() {
+    fn tokenize_concurrent() {
+        let h1 = thread::spawn(|| {
+            let tok = Tokenizer::new("");
+            let res = tok
+                .tokenize("안녕 반가워 ㅋㅋ asdfaw4awfj;awjktawjeowiasdfj")
+                .unwrap();
+            let res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
+            let res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
+        });
+        let h2 = thread::spawn(|| {
+            let tok = Tokenizer::new("");
+            let res = tok.tokenize("345qi0g0iafg0anw4tina0w0awta0wetji").unwrap();
+            let res = tok.tokenize("jaoij5aofzfdg=dgr-gaeirt-a").unwrap();
+            let res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
+        });
+        let h3 = thread::spawn(|| {
+            let tok = Tokenizer::new("");
+            let res = tok.tokenize("a984nzz/.,mxc/,vmq04jtq03jasgjz").unwrap();
+            let res = tok.tokenize("304qzk;nzxcvaowih4tawiszvjxoijv").unwrap();
+            let res = tok.tokenize("ajo4j5l;kajs;lkjz;lfgz;mcgzksj;a").unwrap();
+        });
         let tok = Tokenizer::new("");
-        let res = tok.tokenize("안녕 반가워").unwrap();
+        let res = tok.tokenize("aj3ij52043jnazosdngosintawtaw 오오").unwrap();
+        let res = tok.tokenize("aw45n/zmxc/vmm,mowimetoiajtoaj").unwrap();
+        let res = tok.tokenize("jaoiw4jitoanoinvopsijopasij").unwrap();
+        let res = tok.tokenize("jaop4jipio31-nzdfnpzn").unwrap();
+        let res = tok.tokenize("joajpaoijw45ij13jangozjfdj").unwrap();
+        let res = tok.tokenize("a4310zkfdngqn346ianzd9f").unwrap();
+        let res = tok.tokenize("japoiw45oqniaoarofdzjiogaj").unwrap();
+        h3.join().unwrap();
+        h2.join().unwrap();
+        h1.join().unwrap();
         assert_eq!(format!("{:?}", res), "hi");
     }
 }

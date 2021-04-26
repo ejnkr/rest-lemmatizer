@@ -1,5 +1,7 @@
 echo "1. add nouns"
-curl -XPOST localhost:8000/train -w "\n%{time_connect}:%{time_starttransfer}:%{time_total}\n" --data-binary "@/home/song/Projects/nlp/dataset/shards/date=2021-02-04/part-00000-7033d27b-5ea1-417a-80d9-dcb2930d7675-c000.txt"
+#curl -XPOST localhost:8000/train -w "\n%{time_connect}:%{time_starttransfer}:%{time_total}\n" --data-binary "@/home/song/Projects/nlp/dataset/shards/date=2021-02-04/part-00000-7033d27b-5ea1-417a-80d9-dcb2930d7675-c000.txt"
+curl -XPOST localhost:8000/train -w "\n%{time_connect}:%{time_starttransfer}:%{time_total}\n" --data-binary "감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가 감스트가 감스트를 감스트는 감스트의 감스트도 감스트의 감스트에 감스트ㅋ 감스트 감스트가"
+curl -XGET localhost:8000/nouns
 
 echo "2. sync nouns"
 curl -XPOST localhost:8080/sync-userdic

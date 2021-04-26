@@ -149,7 +149,10 @@ struct ScoreQuery {
     noun: String,
 }
 #[get("/noun-score")]
-async fn noun_score(state: web::Data<RwLock<State>>, query: web::Query<ScoreQuery>) -> Result<HttpResponse, Error> {
+async fn noun_score(
+    state: web::Data<RwLock<State>>,
+    query: web::Query<ScoreQuery>,
+) -> Result<HttpResponse, Error> {
     let noun = query.into_inner().noun;
     let score = state.read().await.noun_score(&noun)?;
     Ok(HttpResponse::Ok().json(score))
@@ -253,7 +256,7 @@ mod tests {
             "안녕\tIC,*,T,안녕,*,*,*,*\nEOS\n".to_string()
         );
     }
-    #[actix_rt::test]
+    /*#[actix_rt::test]
     #[serial]
     async fn test_regist_nouns() {
         let mecab_dic_path = "./mecab-ko-dic".to_string();
@@ -265,7 +268,7 @@ mod tests {
         tokenizer.reload();
         let res = tokenizer.tokenize("뤣쉙퀡").unwrap();
         assert_eq!(res[0].tags[0], "NNP");
-    }
+    }*/
     #[actix_rt::test]
     #[serial]
     async fn test_concurrent_jobs() {
