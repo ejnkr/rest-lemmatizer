@@ -1,6 +1,6 @@
 userdic:
   replicas: 1
-  image: song9446/rest-lemmatizer:0.2.1
+  image: song9446/rest-lemmatizer:0.2.4
   logLevel: WARN
   persistent:
     enabled: true
@@ -11,5 +11,5 @@ userdic:
     nounProbabilityThreshold: 0.9
 tokenizer:
   replicas: 1
-  image: song9446/rest-lemmatizer:0.2.1
+  image: song9446/rest-lemmatizer:0.2.4
   logLevel: WARN

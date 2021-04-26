@@ -67,6 +67,12 @@ spec:
             value: {{ .Values.userdic.config.countThreshold | quote }}
           - name: NOUN_PROBABILITY_THRESHOLD
             value: {{ .Values.userdic.config.nounProbabilityThreshold | quote }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
         resources:
 {{ toYaml .Values.userdic.resources | indent 10 }}
       {{- if .Values.userdic.nodeSelector }}
