@@ -4,6 +4,9 @@ version = "0.2.6"
 authors = ["Eunchul Song <eunchulsong9@gmail.com>"]
 edition = "2018"
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name = "rest-tokenizer"
 path = "src/rest-tokenizer.rs"
