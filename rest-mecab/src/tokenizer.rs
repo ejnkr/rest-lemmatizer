@@ -159,7 +159,32 @@ impl Tokenizer {
             })
             .collect()
     }
-    pub async fn gen_userdic(&self, nouns: Vec<String>) -> Result<()> {
+    pub fn gen_userdic(&self, nouns: Vec<String>) -> Result<()> {
+        let path = self.mecab_dic_path.clone();
+        let userdic_path = Path::new(&path).join("user-dic/rest-mecab.csv");
+        std::fs::write(
+            userdic_path,
+            nouns
+                .into_iter()
+                .filter_map(|n| mecab_csv_nnp_format(&n).ok())
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )?;
+        let output = std::process::Command::new("bash")
+            .current_dir(Path::new(&path))
+            .args(&["-c", r#"./tools/add-userdic.sh && make && make install"#])
+            .output()?;
+        if !output.status.success() {
+            return Err(anyhow::Error::msg(format!(
+                "Status: {:?}, Stdout: {:?}, Stderr: {:?}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            )));
+        }
+        Ok(())
+    }
+    pub async fn gen_userdic_async(&self, nouns: Vec<String>) -> Result<()> {
         let path = self.mecab_dic_path.clone();
         blocking::unblock(move || -> Result<()> {
             let userdic_path = Path::new(&path).join("user-dic/rest-mecab.csv");

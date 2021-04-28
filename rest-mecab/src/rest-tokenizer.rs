@@ -71,7 +71,7 @@ async fn sync_userdic(
     tokenizer
         .read()
         .await
-        .gen_userdic(nouns)
+        .gen_userdic_async(nouns)
         .await
         .map_err(anyhow::Error::from)?;
     reload_tx
@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
     //let data = web::Data::new(RwLock::new(tokenizer));
     let (reload_tx, reload_rx) = postage::broadcast::channel(8);
     tokenizer
-        .gen_userdic(vec![])
+        .gen_userdic_async(vec![])
         .await
         .map_err(anyhow::Error::from)?;
     tokenizer.reload();
@@ -119,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
                             .to_vec();
                         let nouns: Vec<String> = serde_json::from_slice(&res)?;
                         if !nouns.is_empty() {
-                            tokenizer.gen_userdic(nouns).await?;
+                            tokenizer.gen_userdic_async(nouns).await?;
                             tokenizer.reload();
                             reload_tx.send(()).await?;
                         }
@@ -155,7 +155,7 @@ async fn main() -> anyhow::Result<()> {
         let reload_tx = web::Data::new(RwLock::new(reload_tx.clone()));
         /*data.read()
             .await
-            .gen_userdic(vec![])
+            .gen_userdic_async(vec![])
             .await
             .map_err(anyhow::Error::from)?;
         data.write().await.reload();*/
@@ -210,7 +210,7 @@ mod tests {
         let mecab_dic_path = "./mecab-ko-dic".to_string();
         let mut tokenizer = Tokenizer::new(mecab_dic_path);
         tokenizer
-            .gen_userdic(vec!["뤣쉙퀡".to_string()])
+            .gen_userdic_async(vec!["뤣쉙퀡".to_string()])
             .await
             .unwrap();
         tokenizer.reload();
