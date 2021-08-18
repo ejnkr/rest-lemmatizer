@@ -104,7 +104,7 @@ spec:
         {{- range .paths }}
           - path: {{ . }}
             backend:
-              serviceName: {{ .Release.Name }}-tokenizer
+              serviceName: {{ $.Release.Name }}-tokenizer
               servicePort: 8080
         {{- end }}
   {{- end }}
