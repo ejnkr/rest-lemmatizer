@@ -1,6 +1,6 @@
 userdic:
   replicas: 1
-  image: song9446/rest-lemmatizer:0.2.4
+  image: song9446/rest-lemmatizer:0.2.7
   logLevel: WARN
   persistent:
     enabled: true
