@@ -61,8 +61,7 @@ COPY assets/userdic.csv ${MECAB_DIC_PATH}/user-dic/userdic.csv
 COPY --from=builder-system \
     /target/release/rest-tokenizer \
     /usr/local/bin/
-COPY --from=builder-system \
-    /rest-mecab/showcase/build/ \
+COPY ./rest-mecab/showcase/build/ \
     ./static/
 
 COPY --from=builder-system \
