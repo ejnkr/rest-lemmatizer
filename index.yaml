@@ -3,6 +3,16 @@ entries:
   rest-lemmatizer:
   - apiVersion: v2
     appVersion: 0.2.9
+    created: "2021-08-18T16:51:23.731018262Z"
+    description: A Helm chart for Kubernetes
+    digest: 2fb3fe12c9aa4acfdb0bde2b583931ec22f5739c5d95cfdd439ad8ef19ca802c
+    name: rest-lemmatizer
+    type: application
+    urls:
+    - https://github.com/ejnkr/rest-lemmatizer/releases/download/rest-lemmatizer-0.3.6/rest-lemmatizer-0.3.6.tgz
+    version: 0.3.6
+  - apiVersion: v2
+    appVersion: 0.2.9
     created: "2021-08-18T15:27:07.916825707Z"
     description: A Helm chart for Kubernetes
     digest: ab54bc623b0f1ac833c2f270ced03f9c7b4874e397a2281edc7dca85b5e1763e
@@ -131,4 +141,4 @@ entries:
     urls:
     - https://github.com/ejnkr/rest-lemmatizer/releases/download/rest-lemmatizer-0.1.1/rest-lemmatizer-0.1.1.tgz
     version: 0.1.1
-generated: "2021-08-18T15:27:07.917022918Z"
+generated: "2021-08-18T16:51:23.731093063Z"
