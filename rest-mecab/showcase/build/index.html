@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+
+		
+
+		<link rel="modulepreload" href="/_app/start-bf71fca4.js">
+		<link rel="modulepreload" href="/_app/chunks/vendor-4ad2ba8e.js">
+		<link rel="modulepreload" href="/_app/pages/__layout.svelte-d8ab4403.js">
+		<link rel="modulepreload" href="/_app/pages/index.svelte-1194c96b.js">
+		<link rel="stylesheet" href="/_app/assets/start-464e9d0a.css">
+		<link rel="stylesheet" href="/_app/assets/pages/__layout.svelte-0b5b0fe5.css">
+
+		<script type="module">
+			import { start } from "/_app/start-bf71fca4.js";
+			start({
+				target: document.querySelector("#svelte"),
+				paths: {"base":"","assets":""},
+				session: {},
+				host: location.host,
+				route: true,
+				spa: false,
+				trailing_slash: "never",
+				hydrate: {
+					status: 200,
+					error: null,
+					nodes: [
+						import("/_app/pages/__layout.svelte-d8ab4403.js"),
+						import("/_app/pages/index.svelte-1194c96b.js")
+					],
+					page: {
+						host: location.host, // TODO this is redundant
+						path: "/",
+						query: new URLSearchParams(""),
+						params: {}
+					}
+				}
+			});
+		</script>
+	</head>
+	<body>
+		<div id="svelte">
+
+
+<div class="container m-auto m-8"><h1 class="text-xl border-l-4 border-green-400 pl-2 w-52">형태소 분석기 쇼케이스</h1>
+	<div class="mt-8"><input class="border shadow rounded py-2 px-4 w-96" placeholder="트위치에 채팅하듯이 입력해보세요" value="">
+</div>
+	<div class="flex flex-row mt-6 text-sm"></div></div>
+
+
+
+	
+</div>
+	</body>
+</html>
