@@ -43,7 +43,7 @@ pub mod hashmap_store {
             })
         }
         fn get(&self, k: &K) -> Result<Option<V>> {
-            Ok(self.inner.get(&k).copied())
+            Ok(self.inner.get(k).copied())
         }
         fn put(&mut self, k: K, v: V) -> Result<()> {
             self.inner.insert(k, v);

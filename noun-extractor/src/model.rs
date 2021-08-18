@@ -178,7 +178,7 @@ impl State {
             if line.is_empty() {
                 continue;
             }
-            let data: (String, Vec<(u32, u32)>) = serde_json::from_str(&line)?;
+            let data: (String, Vec<(u32, u32)>) = serde_json::from_str(line)?;
             let (text, noun_poses) = data;
             self.train_line(&text, &noun_poses)?;
             if i % 100 == 0 {
@@ -238,7 +238,7 @@ impl State {
     }
 
     pub fn is_valid_suffix(&self, key: &Suffix) -> bool {
-        if let Ok(Some(count)) = self.suffix_count_store.get(&key) {
+        if let Ok(Some(count)) = self.suffix_count_store.get(key) {
             count.postnoun + count.postother >= LARGE_NUMBER
         } else {
             false

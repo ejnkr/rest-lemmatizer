@@ -18,7 +18,9 @@ RUN mkdir /temp && cd /temp && \
 
 COPY . ./
 
-RUN . ~/.cargo/env && RUSTFLAGS="-C target-feature=-crt-static"  cargo build --release
+ENV RUSTFLAGS="-C target-feature=-crt-static -Clink-arg=-Wl,--allow-multiple-definition"
+
+RUN . ~/.cargo/env && cargo build --release
 
 FROM alpine
 

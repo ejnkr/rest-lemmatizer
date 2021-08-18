@@ -118,7 +118,7 @@ pub fn whitespace_less(text: &str) -> String {
 
 pub fn normalize(text: String, opts: &'_ Opts) -> String {
     let text = match &opts.control_chars {
-        Some(c) => control_chars(&text, &c),
+        Some(c) => control_chars(&text, c),
         None => text,
     };
     let text = match opts.repeat {

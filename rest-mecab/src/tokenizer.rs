@@ -144,7 +144,7 @@ impl Tokenizer {
         }
     }
     pub fn tokenize(&self, q: &str) -> Result<Vec<Analytics>> {
-        let s = control_chars(&q, "_");
+        let s = control_chars(q, "_");
         let s = whitespace_less(&s);
         let s = derepeat(&s, 3);
         self.tagger
