@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
+use actix_files::Files;
 
 pub mod tokenizer;
 
@@ -166,6 +167,7 @@ async fn main() -> anyhow::Result<()> {
             .service(tokenize)
             .service(sync_userdic)
             .service(tokenize_post)
+            .service(Files::new("/", "./static").prefer_utf8(true).index_file("index.html"))
     })
     .bind(&format!("0.0.0.0:{}", port))?
     .run()

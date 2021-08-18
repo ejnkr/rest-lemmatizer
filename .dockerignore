@@ -1,8 +1,11 @@
 target
 **/target
 **/dataset
+node_modules
+**/node_modules
 Dockerfile
 Dockerfile*
 scripts
 README.md
 docker-compose.yml
+.git

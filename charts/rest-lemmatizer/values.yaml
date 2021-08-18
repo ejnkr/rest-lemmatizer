@@ -13,3 +13,10 @@ tokenizer:
   replicas: 1
   image: song9446/rest-lemmatizer:0.2.8
   logLevel: WARN
+  ingress:
+    enabled: False
+    annotations: {}
+    hosts: 
+    - host: example.local
+      paths: ['/']
+    tls: []
