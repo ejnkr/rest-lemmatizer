@@ -55,6 +55,29 @@ pub struct Analytics {
     pub morphemes: Option<Vec<Morpheme>>,
 }
 impl Analytics {
+    fn parse_morphemes(s: &str, tag_lookup: Option<Vec<Morpheme>>) -> Result<Option<Vec<Morpheme>>> {
+        return if s == "*" {
+            Ok(None)
+        } else {
+            Ok(Some(s.split('+')
+            .map(|s| {
+                let mut splited = s.split('/');
+                match (splited.next(), splited.next(), &tag_lookup) {
+                    (Some(token), None, Some(lookup)) | (Some(token), Some("*"), Some(lookup)) => Ok(Morpheme {
+                        token: token.to_string(),
+                        tag: lookup.iter().find(|morph| morph.token == token).ok_or_else(|| anyhow::Error::msg(s.to_string()))?.tag.clone(),
+                    }),
+                    (Some(token), Some(tag), _) => Ok(Morpheme {
+                        token: token.to_string(),
+                        tag: tag.to_string(),
+                    }),
+
+                    _ => Err(anyhow::Error::msg(s.to_string())),
+                }
+            })
+            .collect::<Result<Vec<Morpheme>>>()?))
+        }
+    }
     pub fn parse(s: &str) -> Result<Self> {
         let mut sp = s.split('\t');
         let token = sp
@@ -101,25 +124,14 @@ impl Analytics {
                 .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
                 .to_string(),
         );
-        let morphemes = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?;
-        let morphemes = if morphemes == "*" {
-            None
-        } else {
-            Some(
-                morphemes
-                    .split('+')
-                    .map(|s| {
-                        let mut splited = s.split('/');
-                        match (splited.next(), splited.next()) {
-                            (Some(token), Some(tag)) => Ok(Morpheme {
-                                token: token.to_string(),
-                                tag: tag.to_string(),
-                            }),
-                            _ => Err(anyhow::Error::msg(s.to_string())),
-                        }
-                    })
-                    .collect::<Result<Vec<Morpheme>>>()?,
-            )
+        println!("{}", s);
+        let morphemes_simple = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?;
+        let morphemes = match sp.next() {
+            Some(morphemes_detail) => {
+                let tag_lookup = Analytics::parse_morphemes(morphemes_detail, None)?;
+                Analytics::parse_morphemes(morphemes_simple, tag_lookup)?
+            }
+            None => Analytics::parse_morphemes(morphemes_simple, None)?,
         };
         Ok(Analytics {
             token,
@@ -226,35 +238,44 @@ mod tests {
     fn tokenize_concurrent() {
         let h1 = thread::spawn(|| {
             let tok = Tokenizer::new("");
-            let res = tok
+            let _res = tok
                 .tokenize("안녕 반가워 ㅋㅋ asdfaw4awfj;awjktawjeowiasdfj")
                 .unwrap();
-            let res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
-            let res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
+            let _res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
+            let _res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
         });
         let h2 = thread::spawn(|| {
             let tok = Tokenizer::new("");
-            let res = tok.tokenize("345qi0g0iafg0anw4tina0w0awta0wetji").unwrap();
-            let res = tok.tokenize("jaoij5aofzfdg=dgr-gaeirt-a").unwrap();
-            let res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
+            let _res = tok.tokenize("345qi0g0iafg0anw4tina0w0awta0wetji").unwrap();
+            let _res = tok.tokenize("jaoij5aofzfdg=dgr-gaeirt-a").unwrap();
+            let _res = tok.tokenize("jaoiw4n5ao34nztponfz;fdlkgn3o4i").unwrap();
         });
         let h3 = thread::spawn(|| {
             let tok = Tokenizer::new("");
-            let res = tok.tokenize("a984nzz/.,mxc/,vmq04jtq03jasgjz").unwrap();
-            let res = tok.tokenize("304qzk;nzxcvaowih4tawiszvjxoijv").unwrap();
-            let res = tok.tokenize("ajo4j5l;kajs;lkjz;lfgz;mcgzksj;a").unwrap();
+            let _res = tok.tokenize("a984nzz/.,mxc/,vmq04jtq03jasgjz").unwrap();
+            let _res = tok.tokenize("304qzk;nzxcvaowih4tawiszvjxoijv").unwrap();
+            let _res = tok.tokenize("ajo4j5l;kajs;lkjz;lfgz;mcgzksj;a").unwrap();
         });
         let tok = Tokenizer::new("");
-        let res = tok.tokenize("aj3ij52043jnazosdngosintawtaw 오오").unwrap();
-        let res = tok.tokenize("aw45n/zmxc/vmm,mowimetoiajtoaj").unwrap();
-        let res = tok.tokenize("jaoiw4jitoanoinvopsijopasij").unwrap();
-        let res = tok.tokenize("jaop4jipio31-nzdfnpzn").unwrap();
-        let res = tok.tokenize("joajpaoijw45ij13jangozjfdj").unwrap();
-        let res = tok.tokenize("a4310zkfdngqn346ianzd9f").unwrap();
-        let res = tok.tokenize("japoiw45oqniaoarofdzjiogaj").unwrap();
+        let _res = tok.tokenize("aj3ij52043jnazosdngosintawtaw 오오").unwrap();
+        let _res = tok.tokenize("aw45n/zmxc/vmm,mowimetoiajtoaj").unwrap();
+        let _res = tok.tokenize("jaoiw4jitoanoinvopsijopasij").unwrap();
+        let _res = tok.tokenize("jaop4jipio31-nzdfnpzn").unwrap();
+        let _res = tok.tokenize("joajpaoijw45ij13jangozjfdj").unwrap();
+        let _res = tok.tokenize("a4310zkfdngqn346ianzd9f").unwrap();
+        let _res = tok.tokenize("japoiw45oqniaoarofdzjiogaj").unwrap();
         h3.join().unwrap();
         h2.join().unwrap();
         h1.join().unwrap();
-        assert_eq!(format!("{:?}", res), "hi");
+        //assert_eq!(format!("{:?}", res), "hi");
     }
+    #[test]
+    fn tokenize_errorprune_word() {
+        let tok = Tokenizer::new("");
+        let res = tok
+            .tokenize("세종시 ㅋㅋ")
+            .unwrap();
+        assert_eq!(format!("{:?}", res), "[Analytics { token: \"세종시\", tags: [\"NNP\"], symantic_group: Some(\"지명\"), has_support: Some(false), pronounce: Some(\"세종시\"), kind: Some(\"Compound\"), left_tag: None, right_tag: None, morphemes: Some([Morpheme { token: \"세종\", tag: \"NNP\" }, Morpheme { token: \"시\", tag: \"NNG\" }]) }, Analytics { token: \"ㅋㅋ\", tags: [\"UNKNOWN\"], symantic_group: None, has_support: None, pronounce: None, kind: None, left_tag: None, right_tag: None, morphemes: None }]");
+    }
+
 }

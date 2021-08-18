@@ -1,6 +1,6 @@
 [package]
 name = "rest-mecab"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["Eunchul Song <eunchulsong9@gmail.com>"]
 edition = "2018"
 
