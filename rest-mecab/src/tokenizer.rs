@@ -124,7 +124,6 @@ impl Analytics {
                 .ok_or_else(|| anyhow::Error::msg(s.to_string()))?
                 .to_string(),
         );
-        println!("{}", s);
         let morphemes_simple = sp.next().ok_or_else(|| anyhow::Error::msg(s.to_string()))?;
         let morphemes = match sp.next() {
             Some(morphemes_detail) => {

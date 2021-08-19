@@ -50,6 +50,25 @@ async fn health() -> impl Responder {
     "ok"
 }
 
+#[get("/userdic-nouns")]
+async fn userdic_nouns() -> Result<HttpResponse, Error> {
+    let userdic_server_url = std::env::var("USERDIC_SERVER_URL")
+        .map_err(|_| anyhow::Error::msg("USERDIC_SERVER_URL"))?;
+    let client = awc::Client::default();
+    let res = client
+        .get(&userdic_server_url)
+        .send()
+        .await
+        .unwrap()
+        .body()
+        .limit(1024 * 1024 * 1024)
+        .await
+        .unwrap()
+        .to_vec();
+    let nouns: Vec<String> = serde_json::from_slice(&res).unwrap();
+    Ok(HttpResponse::Ok().json(nouns))
+}
+
 #[post("/sync-userdic")]
 async fn sync_userdic(
     tokenizer: web::Data<RwLock<Tokenizer>>,
@@ -167,6 +186,7 @@ async fn main() -> anyhow::Result<()> {
             .service(tokenize)
             .service(sync_userdic)
             .service(tokenize_post)
+            .service(userdic_nouns)
             .service(Files::new("/", "./static").prefer_utf8(true).index_file("index.html"))
     })
     .bind(&format!("0.0.0.0:{}", port))?
