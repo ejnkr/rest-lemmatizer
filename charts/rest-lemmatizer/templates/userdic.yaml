@@ -26,6 +26,8 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}-userdic
   name: {{ .Release.Name }}-userdic
 spec:
+  strategy:
+    type: Recreate
   replicas: {{ .Values.userdic.replicas }}
   selector:
     matchLabels:
