@@ -170,6 +170,11 @@ impl Tokenizer {
             })
             .collect()
     }
+    pub fn get_userdic(&self) -> Result<Vec<u8>> {
+        let path = self.mecab_dic_path.clone();
+        let userdic_path = Path::new(&path).join("user-dic/rest-mecab.csv");
+        Ok(std::fs::read(userdic_path)?)
+    }
     pub fn gen_userdic(&self, nouns: Vec<String>) -> Result<()> {
         let path = self.mecab_dic_path.clone();
         let userdic_path = Path::new(&path).join("user-dic/rest-mecab.csv");

@@ -34,7 +34,7 @@
 <div class="container m-auto m-8">
   <div class='flex items-baseline'>
     <h1 class="text-xl border-l-4 border-green-400 pl-2 w-52">형태소 분석기 쇼케이스</h1>
-    <a class="text-blue-500 ml-4 text-xs" href='/userdic-nouns'> 등록된(혹은 곧 등록될) 명사 리스트 </a>
+    <a class="text-blue-500 ml-4 text-xs" href='/userdic' target="_blank"> 사용자사전</a>
   </div>
 	<div class="mt-8">
 		<input

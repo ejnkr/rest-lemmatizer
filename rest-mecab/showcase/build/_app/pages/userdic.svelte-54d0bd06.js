@@ -1,0 +1,1 @@
+import{S as s,i as a,s as e,t as r,g as t,f as l,I as o,d as c}from"../chunks/vendor-4ad2ba8e.js";function d(s){let a;return{c(){a=r("placeholder")},l(s){a=t(s,"placeholder")},m(s,e){l(s,a,e)},p:o,i:o,o:o,d(s){s&&c(a)}}}class n extends s{constructor(s){super(),a(this,s,null,d,e,{})}}export{n as default};
