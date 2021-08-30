@@ -20,3 +20,12 @@ tokenizer:
     - host: example.local
       paths: ['/']
     tls: []
+storageClass:
+  enabled: false
+  provisioner: kubernetes.io/aws-ebs
+  allowVolumeExpansion: true
+  reclaimPolicy: Delete
+  volumeBindingMode: WaitForFirstConsumer
+  parameters:
+    fsType: ext4
+    type: gp2
